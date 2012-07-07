@@ -1,4 +1,7 @@
-/* FancyCat compliant booloader
+/* FancyCat compliant booloader - TODO - Document specifics of 
+ * switch_to_real_mode and switch_to_protected_mode
+ *
+ * Date: 07/07/2012
  *
  * Author: Walter Litwinczyk
  * Contributors: David C. Larsen, Sean T. Congden
@@ -8,23 +11,71 @@
  *     Author: Jon Coles
  *     Contributors: Warren R. Carithers, K. Reek, Garrett C. Smith
  */
-.code16
+
+/* GDT Constants */
+GDT_CODE  = 0x0010 /* All of memory, R/E */
+GDT_DATA  = 0x0018 /* All of memory, R/W */
+GDT_STACK = 0x0020 /* All of memory, R/W */
+GDT_CODE_16  = 0x0028
+GDT_DATA_16  = 0x0030
+GDT_STACK_16 = 0x0038
+
+/* Stack constants */
+REAL_STACK = 0x7C00-2 /* Start the stack right before the bootloader code */
+PROT_STACK = REAL_STACK - 0x1000 /* Give the real mode 4KiB of stack */
+/* This should put the realmode stack at 0x6C00-0x7c00
+ * and the protected mode stack gets from the end of the
+ * GDT and IDT (0x2D00 = ~11KiB) to 0x6C00, which should
+ * be more than enough for the bootloaders purposes.
+ * Especially because the bootloader does very little 
+ * stack allocation. This also allows the copy buffer to
+ * be larger.
+ */
+
+/* GDT constants */
+GDT_SEGMENT = 0x0050
+GDT_ADDRESS = 0x0500
+
+/* IDT constants */
+IDT_SEGMENT = 0x0250
+IDT_ADDRESS = 0x2500
+
+/* Memory map constants */
+MMAP_SEGMENT = 0x02D0
+MMAP_ADDRESS = 0x2D00
+MMAP_EXT_LO = 0x00
+MMAP_EXT_HI = 0x02
+MMAP_CFG_LO = 0x04
+MMAP_CFG_HI = 0x06
+
+/* Other constants */
 BOOT_SEGMENT  = 0x07c0 /* Default BIOS address to load the bootsector */
 BOOT_ADDRESS  = 0x7c00 /* 32-bit address of the bootloader */
 START_SEGMENT = 0x0000
 START_OFFSET  = 0x7E00
-SECTOR_SIZE   = 0x200  /* 512 bytes */
-MAX_VALID_ADDR = 0x9FBFF /* We're going to assume the the ram from 
+SECTOR_SIZE   = 0x0200 /* 512 bytes */
+OFFSET_LIMIT  = 65536 - SECTOR_SIZE
+MAX_VALID_ADDRESS = 0x9FBFF /* We're going to assume the the ram from 
                             0x80000-0x9FBFF exists */
 
-REAL_STACK = 0x7BFE /* Just before our booloader code */
+/* Copy buffer constants */
+/* This is the location of the buffer used
+ * to copy data from real mode to protected
+ * mode
+ */
+BUFFER_START = 0x8200 /* XXX - Adjust this value if the bootloader grows! */
+BUFFER_SEG = 0x0820 /* XXX - Adjust this value if the bootloader grows! */
+BUFFER_OFF = 0
+BUFFER_SECTORS = (MAX_VALID_ADDRESS - BUFFER_START) / SECTOR_SIZE - 1
+COPY_START_FOR_PROTECTED_MODE = BUFFER_START + 0x8 /* Skip the header information */
 
-
-.globl booloader_entry
+.code16
+.globl bootloader_entry
 bootloader_entry:
 	/* Setup the realmode runtime stack */
 	movw $BOOT_SEGMENT, %ax /* Load the data segment */
 	movw %ax, %ds
+
 	xorw %ax, %ax
 	movw %ax, %ss /* Stack segment starts at 0x0 */
 	movw $REAL_STACK, %ax /* Stack starts before our bootloader */
@@ -49,24 +100,6 @@ halt: /* Halt the processor, there's nothing we can do */
 	hlt
 	jmp halt
 
-/* Error messages */
-message_loading:
-	.asciz "Loading"
-message_dot:
-	.asciz "."
-message_go:
-	.asciz "Done"
-message_bar:
-	.asciz "|"
-error_disk_status:
-	.asciz "Disk not ready\n\r"
-error_disk_read:
-	.asciz "Read failed\n\r"
-error_too_big:
-	.asciz "Too big\n\r
-error_disk_fail:
-	.asciz "Can't proceed\n\r"
-
 disk_okay:
 	movw $0, %ax /* Reset the disk */
 	movb drive, %dl
@@ -77,9 +110,9 @@ disk_okay:
 	 */
 	xorw %ax, %ax /* Set ES:DI = 0000:0000 in case of BIOS bugs */
 	movw %ax, %es
-	movw %ax, di
-	movb %0x08, %ah /* Get drive parameters */
-	movb drive, %di /* Hard disk, USB, or floppy */
+	movw %ax, %di
+	movb $0x08, %ah /* Get drive parameters */
+	movb drive, %dl /* Hard disk, USB, or floppy */
 	int $0x13
 
 	/* Store (max + 1) - CL[5:0] = maximum head, DH = maximum head */
@@ -126,7 +159,7 @@ rs_retry:
 	movw current_head, %dx /* Get our current head number */
 	movb drive, %dl
 
-	movb $0x0201, %ax /* Read one sector */
+	movw $0x0201, %ax /* Read one sector */
 	int $0x13
 	jnc rs_read_continue
 
@@ -181,7 +214,8 @@ rs_save_sector:
 	decw %ax /* Decrement the sector count */
 	jg read_sectors /* If it's zero, we're done reading */
 
-	movw $message_bar, %si /* Print a message saying this block has been read */	call display_message
+	movw $message_bar, %si /* Print a message saying this block has been read */
+	call display_message
 	ret /* Return to who called us */
 
 /* Prints a message to the screen using BIOS calls
@@ -218,10 +252,10 @@ move_gdt:
 	movw %cs, %si
 	movw %si, %ds
 	movw $start_gdt + BOOT_ADDRESS, %si
-	movw %GDT_SEGMENT, %di
+	movw $GDT_SEGMENT, %di
 	movw %di, %es
 	xorw %di, %di
-	movl %gdt_len, %ecx
+	movl $gdt_len, %ecx
 	cld
 	rep movsb
 	ret
@@ -256,13 +290,31 @@ idt_48:
 	.word 0x0800 /* 256 interrupts */
 	.quad IDT_ADDRESS
 
+/* Error messages */
+message_loading:
+	.asciz "Loading"
+message_dot:
+	.asciz "."
+message_go:
+	.asciz "Done"
+message_bar:
+	.asciz "|"
+error_disk_status:
+	.asciz "Disk not ready\n\r"
+error_disk_read:
+	.asciz "Read failed\n\r"
+error_too_big:
+	.asciz "Too big\n\r"
+error_disk_fail:
+	.asciz "Can't proceed\n\r"
+
 /* End the first sector of the boot program. The last two bytes of
  * this sector must be AA55 in order for the disk to be recognized
  * by the BIOS as bootable
  */
-.ord SECTOR_SIZE-4
+.org SECTOR_SIZE-4
 drive: 
-	.word 0 /* 0x00 = floppy, 0x80 = USB */
+	.word 0x80 /* 0x00 = floppy, 0x80 = USB */
 boot_sig:
 	.word 0xAA55
 
@@ -292,14 +344,19 @@ ss_load_loop:
 	/* Make sure interrupts aren't on when we start the kernel */
 	cli
 
+	mov $0xC001C0DE, %eax
+	hlt
+
 	/* Alright everything should be good, lets jump to the kernel! */
 	movl kernel_location+BOOT_ADDRESS, %eax /* Add BOOT_ADDRESS because */
-	push %eax /* segmentation is off */
+	push %eax                               /* segmentation is off */
 	ret
 
 	/* In case the kernel returns */
 	cli
-	jmp halt
+kernel_returned:
+	hlt
+	jmp kernel_returned 
 
 	.code16 /* The rest of the bootloader is still realmode code */
 
@@ -316,12 +373,6 @@ ss_load_loop:
 kernel_location: .quad 0x0
 load_location:   .quad 0x0
 remaining: 		 .quad 0x1
-/* Some useful constants */
-BUFFER_START = /* TODO put a value here */
-BUFFER_SEG = /* TODO put a value here */
-BUFFER_OFF = 0
-BUFFER_SECTORS = (MAX_VALID_RAM - BUFFER_START) / SECTOR_SIZE - 1
-COPY_START_FOR_PROTECTED_MODE = BUFFER_START + 0x8 /* Skip the header information */
 .code16
 load_module:
 	pushw %bx
@@ -479,8 +530,8 @@ cb_copy_loop:
  * Returns:
  *     Nothing
  */
- PROT_MODE_ESP: .quad PROT_STACK+BOOT_ADDRESS
- PROT_MODE_EBP: .quad PROT_STACK+BOOT_ADDRESS
+ PROT_MODE_ESP: .quad PROT_STACK
+ PROT_MODE_EBP: .quad PROT_STACK
  .code32
  switch_to_real_mode:
  	cli /* Turn off interrupts, this is tricky business */
@@ -490,17 +541,10 @@ cb_copy_loop:
 	movl %ebp, PROT_MODE_EBP+BOOT_ADDRESS
 
 	/* Setup the real mode stack */	
-	movl (%esp), %ecx /* Copy the return address to the real stack */
-	movl REAL_MODE_ESP+BOOT_ADDRESS, %edx
-	movw %cx, (%edx) /* The address better fit int 16-bits! */
+	movl (%esp), %ecx /* Copy the return address for later */
 
 	movl REAL_MODE_ESP+BOOT_ADDRESS, %esp /* Switch to the realmode stack */
 	movl REAL_MODE_EBP+BOOT_ADDRESS, %ebp
-
-	/* Fix ESP and EBP */
-	movl $BOOT_ADDRESS, %eax
-	subl %eax, %esp	
-	subl %eax, %ebp
 
 	/* Load the real mode GDT selectors */
 	movw $GDT_DATA_16, %ax
@@ -511,10 +555,8 @@ cb_copy_loop:
 	movw $GDT_STACK_16, %ax
 	movw %ax, %ss
 
-	push %cx
-
 	/* This sets the code segment register */
-	ljmp $GDT_CODE_16, $_not_quite_real+BOOT_ADDRESS
+	ljmp $GDT_CODE_16, $(_not_quite_real+BOOT_ADDRESS)
 _not_quite_real:
 	
 	/* Switch off the protected mode flag */
@@ -530,11 +572,11 @@ _not_quite_real:
 _real_mode_segment:
 
 	/* Setup the real mode segments */
-	movw $0x7C0, %ax
+	movw $BOOT_SEGMENT, %ax
 	movw %ax, %ds
-	movw %ax, %ss
 	/* Clear the general purpose registers */
 	xorw %ax, %ax
+	movw %ax, %ss /* Stack segment starts at 0! */
 	movw %ax, %es
 	movw %ax, %fs
 	movw %ax, %gs
@@ -542,6 +584,7 @@ _real_mode_segment:
 	/* Load the real mode IDT */
 	lidt (real_idt)
 
+	push %cx
 	sti
 	ret
 
@@ -557,13 +600,9 @@ REAL_MODE_ESP: .quad REAL_STACK
 REAL_MODE_EBP: .quad REAL_STACK
 .code16
 switch_to_protected_mode:
-	cli /* Turn off interrupts, this is trick business! */
-	movb %0x08, %al /* Disable NMIs */
-	outb %al, %0x70
-
-	/* Save the current ESP and EBP */
-	movl %esp, REAL_MODE_ESP
-	movl %ebp, REAL_MODE_EBP
+	cli /* Turn off interrupts, this is tricky business! */
+	movb $0x08, %al /* Disable NMIs */
+	outb %al, $0x70
 
 	/* Load the protected mode IDT */
 	lidt (idt_48)
@@ -585,7 +624,7 @@ _protected_mode_segment:
 	outb %al, $0x70
 
 	/* Load the real mode GDT selectors */
-	xor %bx, %bx
+	xorw %bx, %bx
 	movw $GDT_DATA, %ax
 	movw %ax, %ds
 	movw %bx, %es
@@ -593,13 +632,14 @@ _protected_mode_segment:
 	movw %bx, %gs
 	movw $GDT_STACK, %ax
 	movw %ax, %ss
-
-	/* Save the current return address */
-	xorl %eax, %eax
-	movw %sp, %ax
-	addl $BOOT_ADDRESS, %eax
-	movl (%eax), %ebx /* EAX holds the return address */
+	
+	/* Get rid of the current return address */
+	popw %bx
 	andl $0x0000FFFF, %ebx
+
+	/* Save the current ESP and EBP */
+	movl %esp, REAL_MODE_ESP+BOOT_ADDRESS
+	movl %ebp, REAL_MODE_EBP+BOOT_ADDRESS
 
 	/* Switch to the protected mode stack */
 	movl PROT_MODE_ESP+BOOT_ADDRESS, %esp /* Restore the saved ESP */
