@@ -1,13 +1,13 @@
 module kernel.vga;
 
-void put_char(int x, int y, byte c)
+void put_char(int x, int y, byte c) nothrow
 {
 	ushort* video = cast(ushort *) 0xB8000 + (y*80 + x);
 
 	*video = (0x70 << 8) | c;
 }
 
-void put_string(int x, int y, string message)
+void put_string(int x, int y, string message) nothrow
 {
 	foreach(character; message)
 	{
@@ -24,5 +24,3 @@ void put_string(int x, int y, string message)
 		}
 	}
 }
-
-string message = "Hello World! From the D2 Programming language!";

@@ -33,11 +33,14 @@ clib:
 
 kernel: clean bootloader fancycat clib
 	$(AS) $(AS_FLAGS) src/kernel/constructors.S -o $(OBJ_DIR)/constructors.o		
+	$(AS) $(AS_FLAGS) src/kernel/support.S -o $(OBJ_DIR)/support-asm.o
 	$(DC) $(D_FLAGS) -c src/kernel/kmain.d -Isrc -of$(OBJ_DIR)/kmain.o
 	$(DC) $(D_FLAGS) -c src/kernel/vga.d -of$(OBJ_DIR)/vga.o
+	$(DC) $(D_FLAGS) -c src/kernel/interrupts.d -of$(OBJ_DIR)/interrupts.o
 	$(DC) $(D_FLAGS) -c src/kernel/paging/memory.d -of$(OBJ_DIR)/memory.o
-	$(LD) $(LD_FLAGS) -Tsrc/linker_scripts/kernel.ld $(OBJ_DIR)/constructors.o $(OBJ_DIR)/kmain.o src/bikeshed-lib/libdruntime-bikeshed32.a src/bikeshed-lib/libphobos2.a $(OBJ_DIR)/stdlib.o $(OBJ_DIR)/vga.o $(OBJ_DIR)/memory.o -o $(OUTPUT_DIR)/kernel.b
-	$(LD) -m elf_i386 -Tsrc/linker_scripts/kernel.ld $(OBJ_DIR)/constructors.o $(OBJ_DIR)/kmain.o src/bikeshed-lib/libdruntime-bikeshed32.a src/bikeshed-lib/libphobos2.a $(OBJ_DIR)/stdlib.o $(OBJ_DIR)/vga.o $(OBJ_DIR)/memory.o -o $(OUTPUT_DIR)/kernel.o
+	$(DC) $(D_FLAGS) -c src/kernel/support.d -of$(OBJ_DIR)/support.o
+	$(LD) $(LD_FLAGS) -Tsrc/linker_scripts/kernel.ld $(OBJ_DIR)/constructors.o $(OBJ_DIR)/kmain.o src/bikeshed-lib/libdruntime-bikeshed32.a src/bikeshed-lib/libphobos2.a $(OBJ_DIR)/stdlib.o $(OBJ_DIR)/vga.o $(OBJ_DIR)/memory.o $(OBJ_DIR)/interrupts.o $(OBJ_DIR)/support-asm.o -o $(OUTPUT_DIR)/kernel.b
+	$(LD) -m elf_i386 -Tsrc/linker_scripts/kernel.ld $(OBJ_DIR)/constructors.o $(OBJ_DIR)/kmain.o src/bikeshed-lib/libdruntime-bikeshed32.a src/bikeshed-lib/libphobos2.a $(OBJ_DIR)/stdlib.o $(OBJ_DIR)/vga.o $(OBJ_DIR)/memory.o $(OBJ_DIR)/interrupts.o $(OBJ_DIR)/support-asm.o -o $(OUTPUT_DIR)/kernel.o
 	$(OUTPUT_DIR)/FancyCat 0x100000 $(OUTPUT_DIR)/kernel.b
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
