@@ -1,4 +1,4 @@
-ENTRY (kmain)
+ENTRY (pre_kernel)
 OUTPUT_ARCH (i386)
 
 SECTIONS {
@@ -7,15 +7,38 @@ SECTIONS {
 	.text : {
 		code = .; _code = .; __code = .;
 		*(.text)
+		*(.text.*)
 	}
 
 	.data ALIGN(0x1000) : {
+		data_start = .; __data_start = .;
 		data = .; _data = .; __data = .;
 		*(.data)
+		*(.data.*)
+		start_of_ctors = .; *(.ctors) *(.ctors.*) end_of_ctors = .;
+		start_of_dtors = .; *(.dtors) *(.dtors.*) end_of_dtors = .;
+	}
+
+	.tdata ALIGN(0x1000) : {
+		tls = .; _tls = .; __tls = .;
+		*(.tdata)
+		*(.tdata.*)
+		*(.gnu.linkonce.td.*)
 	}
 
 	.rodata ALIGN(0x1000) : {
 		*(.rodata)
+		*(.rodata.*)
+		*(.rel.rodata)
+		*(.rel.rodata.*)
+	}
+
+	.tbss ALIGN(4096) : {
+		tbss = .; _tbss = .; __tbss = .;
+		*(.tbss)
+		*(.tbss.*)
+		*(.gnu.linkonce.tb.*)
+		*(.tcommon)
 	}
 
 	.bss : {
@@ -23,6 +46,10 @@ SECTIONS {
 		bss = .; _bss = .; __bss = .;
 		*(COMMON)
 		*(.bss)
+		*(.bss.*)
+		*(.tbss) /* Thread local storage stuff */
+		*(.tbss.*)
+		*(.tcommon)
 		ebss = .;
 	}
 	end = .; _end = .; __end = .;

@@ -70,7 +70,7 @@ init_idt()
 {
 	for (int i = 0; i < 256; ++i)
 	{
-		set_idt_entry(i, __isr_stub_table[i]);
+		//set_idt_entry(i, __isr_stub_table[i]);
 		install_isr(i, &__default_unexpected_handler);
 	}
 

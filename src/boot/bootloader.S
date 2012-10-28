@@ -55,8 +55,6 @@ START_SEGMENT = 0x0000
 START_OFFSET  = 0x7E00
 SECTOR_SIZE   = 0x0200 /* 512 bytes */
 OFFSET_LIMIT  = 65536 - SECTOR_SIZE
-MAX_VALID_ADDRESS = 0x9FBFF /* We're going to assume the the ram from 
-                            0x80000-0x9FBFF exists */
 
 /* Copy buffer constants */
 /* This is the location of the buffer used
@@ -66,7 +64,7 @@ MAX_VALID_ADDRESS = 0x9FBFF /* We're going to assume the the ram from
 BUFFER_START = 0x8200 /* XXX - Adjust this value if the bootloader grows! */
 BUFFER_SEG = 0x0820 /* XXX - Adjust this value if the bootloader grows! */
 BUFFER_OFF = 0
-BUFFER_SECTORS = (MAX_VALID_ADDRESS - BUFFER_START) / SECTOR_SIZE - 1
+BUFFER_SECTORS = 100
 COPY_START_FOR_PROTECTED_MODE = BUFFER_START + 0x8 /* Skip the header information */
 
 .code16
@@ -352,6 +350,7 @@ ss_load_loop:
 	/* In case the kernel returns */
 	cli
 kernel_returned:
+	movl $0xA0A0A0A0, %eax
 	hlt
 	jmp kernel_returned 
 
