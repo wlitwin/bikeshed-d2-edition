@@ -7,7 +7,7 @@ import kernel.support;
 
 __gshared:
 
-enum SERIAL_PORT_A = 0x3F8;
+private enum SERIAL_PORT_A = 0x3F8;
 
 void init_serial_debug()
 {
@@ -38,7 +38,7 @@ private void serial_char(char c)
 
 private string hexdigits = "0123456789ABCDEF";
 
-private int to_string_u(uint val, ref char buffer[10], int index = 9)
+private int to_string_u(ulong val, ref char buffer[20], int index = 19)
 {
 	do
 	{
@@ -51,7 +51,7 @@ private int to_string_u(uint val, ref char buffer[10], int index = 9)
 	return index+1;
 }
 
-private int to_string_i(int val, ref char buffer[11], int index = 10)
+private int to_string_i(long val, ref char buffer[21], int index = 20)
 {
 	bool negative = val < 0;
 	if (negative)
@@ -92,7 +92,12 @@ private void write_string(char[] s)
 	}
 }
 
-void serial_outln(...)
+void serial_outln(S...)(S args)
+{
+	serial_out(args, '\n');
+}
+
+void serial_out(...)
 {
 	for (int i = 0; i < _arguments.length; ++i)
 	{
@@ -101,27 +106,34 @@ void serial_outln(...)
 			string str = va_arg!(string)(_argptr);
 			write_string(str);
 		}
-		else if (_arguments[i] == typeid(uint))
+		else if (_arguments[i] == typeid(ulong)
+				|| _arguments[i] == typeid(uint)
+				|| _arguments[i] == typeid(ushort)
+				|| _arguments[i] == typeid(ubyte))
 		{
 			uint val = va_arg!(uint)(_argptr);
-			char buffer[10];
-			for (int j = to_string_u(val, buffer); j < 10; ++j)
+			char buffer[20];
+			for (int j = to_string_u(val, buffer); j < 20; ++j)
 			{
 				serial_char(buffer[j]);
 			}
 		}
-		else if (_arguments[i] == typeid(int))
+		else if (_arguments[i] == typeid(long)
+				|| _arguments[i] == typeid(int) 
+				|| _arguments[i] == typeid(short) 
+				|| _arguments[i] == typeid(byte))
 		{
 			int val = va_arg!(int)(_argptr);				
-			char buffer[11];
-			
-			for (int j = to_string_i(val, buffer); j < 11; ++j)
+			char buffer[21];
+			for (int j = to_string_i(val, buffer); j < 21; ++j)
 			{
 				serial_char(buffer[j]);
 			}
 		}
+		else if (_arguments[i] == typeid(char))
+		{
+			serial_char(va_arg!(char)(_argptr));
+		}
 	}
-
-	serial_char('\n');
 }
 

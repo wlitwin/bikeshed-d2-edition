@@ -14,7 +14,6 @@ extern(C)
 	}
 }
 
-
 // TODO - Should be for the current thread
 extern(C)
 int* __errno_location()
