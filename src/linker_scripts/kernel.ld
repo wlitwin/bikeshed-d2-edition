@@ -3,6 +3,7 @@ OUTPUT_ARCH (i386)
 
 SECTIONS {
 	. = 0x100000;
+	KERNEL_START = .;
 
 	.text : {
 		code = .; _code = .; __code = .;
@@ -53,6 +54,7 @@ SECTIONS {
 		ebss = .;
 	}
 	end = .; _end = .; __end = .;
+	KERNEL_END = .;
 
 	/DISCARD/ :
 	{

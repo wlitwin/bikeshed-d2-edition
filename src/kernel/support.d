@@ -1,3 +1,5 @@
+module kernel.support;
+
 extern (C)
 {
 	ubyte  __inb(ushort port);

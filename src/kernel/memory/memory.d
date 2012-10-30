@@ -1,11 +1,15 @@
-module kernel.memory;
+module kernel.memory.memory;
+
+import kernel.memory.emplace;
 
 import kernel.serial;
 import kernel.memory.iPhysicalAllocator;
+import kernel.memory.bitmapAllocator;
 
 __gshared:
 // This is a linker symbol, it's address is the end of the kernel
-extern(C) int end;
+extern(C) int KERNEL_END;
+extern(C) int KERNEL_START;
 
 // Gathers a bunch of information
 // about the machines memory layout
@@ -19,12 +23,20 @@ struct MemoryInfo
 	uint kernel_end;
 }
 
-// The global memory information struct.
-// Constains information about how much
-// memory this machine has available.
-MemoryInfo g_memoryInfo = void;
-
 IPhysicalAllocator g_physicalAllocator = void;
+
+private
+{
+	// The global memory information struct.
+	// Constains information about how much
+	// memory this machine has available.
+	MemoryInfo g_memoryInfo = void;
+
+	BitmapAllocator ba;
+
+	// Allocate some space for the bitmap allocator
+	void _phys_allocator_space[__traits(classInstanceSize, typeof(ba))] = void;
+}
 
 void
 init_memory()
@@ -47,16 +59,24 @@ init_memory()
 	g_memoryInfo.memory_low = memory_low;
 	g_memoryInfo.memory_high = memory_hi;
 	g_memoryInfo.memory_total = memory_total;
-	g_memoryInfo.kernel_start = KERNEL_START;
-	g_memoryInfo.kernel_end = cast(uint)&end;
+	g_memoryInfo.kernel_start = cast(uint)&KERNEL_START;
+	g_memoryInfo.kernel_end = cast(uint)&KERNEL_END;
+
+	// Place the physical allocator in the correct spot
+	ba = emplace!BitmapAllocator(_phys_allocator_space[]);
+	g_physicalAllocator = ba;
 
 	// Initialize the physical allocator
+	g_physicalAllocator.initialize(g_memoryInfo);
+
+	// Initialize the physical allocator
+	serial_outln("Location: ", cast(uint)&ba);
 
 	// Print some debug information
-	serial_outln("Memory Size: ", PHYSICAL_MEMORY_SIZE);
+	serial_outln("Memory Size: ", memory_total);
 	serial_outln("Memory Low : ", memory_low);
 	serial_outln("Memory Hi  : ", memory_hi);
 
-	serial_outln("End of kernel: ", cast(int)&end);
+	serial_outln("End of kernel: ", g_memoryInfo.kernel_end);
 }
 

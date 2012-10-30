@@ -1,7 +1,7 @@
 import kernel.vga;
 import kernel.serial;
 import kernel.interrupts;
-import kernel.paging.memory;
+import kernel.memory.memory;
 
 // From the D runtime
 //import core.runtime;

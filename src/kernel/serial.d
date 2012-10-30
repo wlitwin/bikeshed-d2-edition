@@ -134,6 +134,15 @@ void serial_out(...)
 		{
 			serial_char(va_arg!(char)(_argptr));
 		}
+		else if (_arguments[i] == typeid(const(char)[]))
+		{
+			const(char)[] str = va_arg!(const(char)[])(_argptr);
+			foreach (c; str) serial_char(c);
+		}
+		else
+		{
+			write_string("serial_outln: Failed to match type");
+		}
 	}
 }
 

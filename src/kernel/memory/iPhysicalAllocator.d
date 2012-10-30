@@ -1,6 +1,6 @@
 module kernel.memory.iPhysicalAllocator;
 
-import kernel.memory;
+import kernel.memory.memory;
 
 alias uint phys_addr;
 
