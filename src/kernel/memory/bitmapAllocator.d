@@ -1,9 +1,9 @@
 module kernel.memory.bitmapAllocator;
 
 import kernel.serial;
-import kernel.support;
+import kernel.support : panic;
 
-import kernel.memory.memory;
+import kernel.memory.memory : PAGE_SIZE, MemoryInfo;
 import kernel.memory.iPhysicalAllocator;
 
 __gshared:
@@ -12,7 +12,7 @@ class BitmapAllocator : IPhysicalAllocator
 {
 	private uint m_bitmapSize;
 	private uint* m_bitmap;
-	private uint last_index;
+	private uint m_last_index;
 
 	private uint phys_to_index(phys_addr address)
 	{
@@ -28,7 +28,7 @@ class BitmapAllocator : IPhysicalAllocator
 	{
 		serial_outln("\nBitmap Allocator: Initializing");
 
-		last_index = 0;
+		m_last_index = 0;
 
 		// Figure out how large the bitmap needs to
 		// be based on the total amount of memory available
@@ -56,7 +56,7 @@ class BitmapAllocator : IPhysicalAllocator
 
 	phys_addr allocate_page()
 	{
-		uint i = last_index;
+		uint i = m_last_index;
 		uint start = i;
 		while (m_bitmap[i] == 0xFFFFFFFF)
 		{
@@ -80,6 +80,7 @@ class BitmapAllocator : IPhysicalAllocator
 			++offset;
 		}
 
+		// Check if something weird happend
 		if (offset >= 32)
 		{
 			serial_outln("Bitmap Allocator: Error finding free page!");
@@ -88,10 +89,9 @@ class BitmapAllocator : IPhysicalAllocator
 
 		m_bitmap[i] |= the_bit;
 
-
 		phys_addr address = i * PAGE_SIZE * 32;
 		serial_outln("Bitmap Allocator: Giving out page ", address);
-		last_index = i;
+		m_last_index = i;
 		return address;
 	}
 

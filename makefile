@@ -43,12 +43,14 @@ kernel: clean bootloader fancycat clib
 	$(DC) $(D_FLAGS) -c src/kernel/interrupts.d -of$(OBJ_DIR)/interrupts.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/memory.d -of$(OBJ_DIR)/memory.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/iPhysicalAllocator.d -of$(OBJ_DIR)/iPhysicalAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/memory/basicVirtualAllocator.d -of$(OBJ_DIR)/basicVirtualAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/memory/iVirtualAllocator.d -of$(OBJ_DIR)/iVirtualAllocator.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/bitmapAllocator.d -of$(OBJ_DIR)/bitmapAllocator.o
 	$(DC) $(D_FLAGS) -c src/kernel/support.d -of$(OBJ_DIR)/support.o
 	$(DC) $(D_FLAGS) -c src/kernel/serial.d -of$(OBJ_DIR)/serial.o
 	@echo
 	
-	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld constructors.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
+	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld constructors.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
 	$(OUTPUT_DIR)/FancyCat 0x100000 $(OUTPUT_DIR)/kernel.b
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin

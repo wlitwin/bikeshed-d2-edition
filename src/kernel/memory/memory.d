@@ -4,10 +4,12 @@ import kernel.memory.emplace;
 
 import kernel.serial;
 import kernel.memory.iPhysicalAllocator;
+import kernel.memory.iVirtualAllocator;
 import kernel.memory.bitmapAllocator;
+import kernel.memory.basicVirtualAllocator;
 
 __gshared:
-// This is a linker symbol, it's address is the end of the kernel
+// These are linker symbols, it's address is the end/start of the kernel
 extern(C) int KERNEL_END;
 extern(C) int KERNEL_START;
 
@@ -26,6 +28,7 @@ struct MemoryInfo
 }
 
 IPhysicalAllocator g_physicalAllocator = void;
+IVirtualAllocator  g_virtualAllocator  = void;
 
 private
 {
@@ -35,9 +38,12 @@ private
 	MemoryInfo g_memoryInfo = void;
 
 	BitmapAllocator ba;
+	BasicVirtualAllocator va;	
 
-	// Allocate some space for the bitmap allocator
+	// Allocate some space for the physical allocator
 	void _phys_allocator_space[__traits(classInstanceSize, typeof(ba))] = void;
+	// Allocator space for the virtual allocator
+	void _virt_allocator_space[__traits(classInstanceSize, typeof(va))] = void;
 }
 
 void
@@ -69,15 +75,15 @@ init_memory()
 	ba = emplace!BitmapAllocator(_phys_allocator_space[]);
 	g_physicalAllocator = ba;
 
+	// Place the virtual allocator in the correct spot
+	va = emplace!BasicVirtualAllocator(_virt_allocator_space[]);
+	g_virtualAllocator = va;
+
 	// Initialize the physical allocator
 	g_physicalAllocator.initialize(g_memoryInfo);
 
-	// Try to allocate something from the physical allocator
-	phys_addr address = g_physicalAllocator.allocate_page();
-	serial_outln("Allocated: ", address);
-	g_physicalAllocator.free_page(address);
-	address = g_physicalAllocator.allocate_page();
-	serial_outln("Allocated: ", address);
+	// Initialize the virtual allocator
+	g_virtualAllocator.initialize(g_physicalAllocator);
 
 	// Print some debug information
 	serial_outln("\tMemory Size: ", memory_total);
