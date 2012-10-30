@@ -11,6 +11,8 @@ __gshared:
 extern(C) int KERNEL_END;
 extern(C) int KERNEL_START;
 
+enum PAGE_SIZE = 4096;
+
 // Gathers a bunch of information
 // about the machines memory layout
 // and size in one location
@@ -41,6 +43,7 @@ private
 void
 init_memory()
 {
+	serial_outln("\nMemory: Initializing");
 	// Some useful constants
 	// The memory addresses are defined in bootloader.S
 	enum MMAP_ADDRESS = 0x2D00;
@@ -69,14 +72,18 @@ init_memory()
 	// Initialize the physical allocator
 	g_physicalAllocator.initialize(g_memoryInfo);
 
-	// Initialize the physical allocator
-	serial_outln("Location: ", cast(uint)&ba);
+	// Try to allocate something from the physical allocator
+	phys_addr address = g_physicalAllocator.allocate_page();
+	serial_outln("Allocated: ", address);
+	g_physicalAllocator.free_page(address);
+	address = g_physicalAllocator.allocate_page();
+	serial_outln("Allocated: ", address);
 
 	// Print some debug information
-	serial_outln("Memory Size: ", memory_total);
-	serial_outln("Memory Low : ", memory_low);
-	serial_outln("Memory Hi  : ", memory_hi);
-
-	serial_outln("End of kernel: ", g_memoryInfo.kernel_end);
+	serial_outln("\tMemory Size: ", memory_total);
+	serial_outln("\tMemory Low : ", memory_low);
+	serial_outln("\tMemory Hi  : ", memory_hi);
+	serial_outln("\tEnd of kernel: ", g_memoryInfo.kernel_end);
+	serial_outln("Memory: Finished\n");
 }
 
