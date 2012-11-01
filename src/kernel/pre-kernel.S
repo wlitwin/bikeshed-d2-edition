@@ -2,6 +2,8 @@
 .globl pre_kernel
 pre_kernel:
 
+	# TODO - Maybe move the kernel higher and
+	#        place the stack under the kernel?
 	# Setup the kernels stack
 	movl $(0x200000-0x4), %esp
 	movl %esp, %ebp

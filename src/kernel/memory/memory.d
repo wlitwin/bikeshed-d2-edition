@@ -9,7 +9,12 @@ import kernel.memory.bitmapAllocator;
 import kernel.memory.basicVirtualAllocator;
 
 __gshared:
-// These are linker symbols, it's address is the end/start of the kernel
+// These are linker symbols,
+// To get the address of the end of the kernel, take
+// the address of KERNEL_END.
+// Similarly to get the address of the start of the
+// kernel take the address of KERNEL_START.
+// TODO - virtual or physical addresses?
 extern(C) int KERNEL_END;
 extern(C) int KERNEL_START;
 
@@ -34,7 +39,7 @@ private
 {
 	// The global memory information struct.
 	// Constains information about how much
-	// memory this machine has available.
+	// memory the current machine has available.
 	MemoryInfo g_memoryInfo = void;
 
 	BitmapAllocator ba;
@@ -83,12 +88,13 @@ init_memory()
 	g_physicalAllocator.initialize(g_memoryInfo);
 
 	// Initialize the virtual allocator
-	g_virtualAllocator.initialize(g_physicalAllocator);
+	g_virtualAllocator.initialize(g_physicalAllocator, g_memoryInfo);
 
 	// Print some debug information
 	serial_outln("\tMemory Size: ", memory_total);
 	serial_outln("\tMemory Low : ", memory_low);
 	serial_outln("\tMemory Hi  : ", memory_hi);
+	serial_outln("\tStart of kernel: ", g_memoryInfo.kernel_start);
 	serial_outln("\tEnd of kernel: ", g_memoryInfo.kernel_end);
 	serial_outln("Memory: Finished\n");
 }

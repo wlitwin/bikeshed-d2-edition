@@ -1,10 +1,15 @@
+module kernel.interrupts;
+
 import kernel.support;
+import kernel.serial;
 
 __gshared:
 
 alias extern(C) void function(int vector, int code) isr_handler;
+alias extern(C) void function() idt_handler;
 
 isr_handler __isr_table[256];
+idt_handler __idt_table[256];
 
 enum IDT_ADDRESS = 0x2500;
 
@@ -58,19 +63,85 @@ struct IDT_Gate
 	ushort offset_31_16;
 }
 
-void
+public void
+enable_interrupts()
+{
+	asm
+	{
+		sti;
+	}
+}
+
+public void
+disable_interrupts()
+{
+	asm
+	{
+		cli;
+	}
+}
+
+public void
 init_interrupts()
 {
+	serial_outln("\nInterrupts: Initializing");
 	init_idt();
 	init_pic();	
+	serial_outln("Interrupts: Finished");
+}
+
+void
+install_isr(int vector, isr_handler handler)
+{
+	__isr_table[vector] = handler;
+}
+
+private:
+
+extern (C) void
+isr_save()
+{
+	//int vec = void;
+	//int err = void;
+	/*
+	asm
+	{
+		naked;
+		pusha;
+		pushl DS;
+		pushl ES;
+		pushl FS;
+		pushl GS;
+		pushl SS;
+
+		movl 52[ESP], EAX;
+		movl 56[ESP], EBX;
+	}
+	*/
+}
+
+extern (C) void
+basic_idt_handler()
+{
+	asm { naked; }
+	serial_outln("Handler called");
+	//panic();
+	asm { iret; }
 }
 
 void
 init_idt()
 {
+	// Setup the idt table
 	for (int i = 0; i < 256; ++i)
 	{
-		//set_idt_entry(i, __isr_stub_table[i]);
+		__idt_table[i] = &basic_idt_handler;
+	}
+
+	for (int i = 0; i < 256; ++i)
+	{
+		// TODO - probably don't need the ISR stub table
+		set_idt_entry(i, __idt_table[i]);
 		install_isr(i, &__default_unexpected_handler);
 	}
 
@@ -111,25 +182,22 @@ init_pic()
 }
 
 void
-set_idt_entry(int entry, isr_handler handler)
+set_idt_entry(int entry, idt_handler handler)
 {
 	IDT_Gate* g = cast(IDT_Gate*)IDT_ADDRESS + entry;
 
-	g.offset_15_0 = cast(int)handler & 0xFFFF;
+	g.offset_15_0 = cast(uint)handler & 0xFFFF;
 	g.segment_selector = 0x0010;
 	g.flags = IDT_PRESENT | IDT_DPL_0 | IDT_INT32_GATE;
-	g.offset_31_16 = cast(int)handler >> 16 & 0xFFFF;
+	g.offset_31_16 = (cast(uint)handler >> 16) & 0xFFFF;
 }
 
-void
-install_isr(int vector, isr_handler handler)
-{
-	__isr_table[vector] = handler;
-}
 
 extern (C) void
 __default_expected_handler(int vector, int code)
 {
+	serial_outln("Expected interrupt ", vector);
+
 	if (vector >= 0x20 && vector < 0x30)
 	{
 		__outb(PIC_MASTER_CMD_PORT, PIC_EOI);

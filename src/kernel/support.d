@@ -16,6 +16,7 @@ panic()
 {
 	asm
 	{
+		cli;
 		hlt;
 	}
 }
