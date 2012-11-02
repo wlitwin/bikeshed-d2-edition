@@ -43,10 +43,17 @@ kmain()
 //	finally { /* Do nothing */ }
 	enable_interrupts();
 	
-	int val = 0x12345678;
-	asm
+	int val1 = 0;
+	while (true)
 	{
-		mov EAX, val;
-		hlt;
+		int val = 0x12345678;
+		val1 += 1;
+		asm
+		{
+			sti;
+			mov EAX, val;
+			mov EBX, val1;
+			hlt;
+		}
 	}
 }

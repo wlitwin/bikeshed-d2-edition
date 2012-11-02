@@ -10,7 +10,7 @@ AS=as
 AS_FLAGS=--32 -n32
 
 LD=ld
-LD_FLAGS=-m elf_i386 --oformat binary
+LD_FLAGS=-m elf_i386 --gc-sections --oformat=binary
 
 OUTPUT_DIR=output
 OBJ_DIR=obj
@@ -41,10 +41,12 @@ kernel: clean bootloader fancycat clib
 	$(DC) $(D_FLAGS) -c src/kernel/kmain.d -Isrc -of$(OBJ_DIR)/kmain.o
 	$(DC) $(D_FLAGS) -c src/kernel/vga.d -of$(OBJ_DIR)/vga.o
 	$(DC) $(D_FLAGS) -c src/kernel/interrupts.d -of$(OBJ_DIR)/interrupts.o
+	$(DC) $(D_FLAGS) -c src/kernel/interrupt_defs.d -of$(OBJ_DIR)/interrupt_defs.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/memory.d -of$(OBJ_DIR)/memory.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/iPhysicalAllocator.d -of$(OBJ_DIR)/iPhysicalAllocator.o
 	$(DC) $(D_FLAGS) -c src/kernel/clock.d -of$(OBJ_DIR)/clock.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/basicVirtualAllocator.d -of$(OBJ_DIR)/basicVirtualAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/templates.d -of$(OBJ_DIR)/templates.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/iVirtualAllocator.d -of$(OBJ_DIR)/iVirtualAllocator.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/bitmapAllocator.d -of$(OBJ_DIR)/bitmapAllocator.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/util.d -of$(OBJ_DIR)/util.o
@@ -52,7 +54,8 @@ kernel: clean bootloader fancycat clib
 	$(DC) $(D_FLAGS) -c src/kernel/serial.d -of$(OBJ_DIR)/serial.o
 	@echo
 	
-	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
+	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
+	cd $(OBJ_DIR); $(LD) -m elf_i386 --gc-sections -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.o
 	$(OUTPUT_DIR)/FancyCat 0x100000 $(OUTPUT_DIR)/kernel.b
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
