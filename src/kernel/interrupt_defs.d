@@ -11,13 +11,18 @@ isr_save()
 	asm {
 		naked;
 		//serial_outln("Got to ISR save!");
-		push EAX;
-		push EBX;
-		push ECX;
+		// Need to save all of the registers
+		// because the CPU expects these to not change
+		pushad;  // 32-bytes
+		push DS; // 36-byte
+		push ES; // 40-byte
+		push FS; // 44-byte
+		push GS; // 48-byte
+		push SS; // 52-byte
 
 
-		mov EAX, [ESP + 12]; // ISR number
-		mov EBX, [ESP + 16]; // Error code
+		mov EAX, [ESP + 52]; // ISR number
+		mov EBX, [ESP + 56]; // Error code
 
 		push EBX;
 		push EAX;
@@ -26,9 +31,12 @@ isr_save()
 		add ESP, 8;
 
 
-		pop ECX;
-		pop EBX;
-		pop EAX;
+		pop SS;
+		pop GS;
+		pop FS;
+		pop ES;
+		pop DS;
+		popad;
 		add ESP, 8; // Error code and vector
 		iretd;
 	}
