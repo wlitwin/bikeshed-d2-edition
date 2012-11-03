@@ -54,6 +54,32 @@ class BitmapAllocator : IPhysicalAllocator
 		serial_outln("Bitmap Allocator: Finished\n");
 	}
 
+	void reserve_page(phys_addr address)
+	{
+		uint index = phys_to_index(address);
+		if (index >= m_bitmapSize)
+			return;
+
+		serial_outln("Bitmap Allocator: Reserving page ", address);
+		uint offset = phys_to_offset(address);
+		m_bitmap[index] |= (1 << offset);
+	}
+
+	void reserve_range(phys_addr from, phys_addr to)
+	{
+		if (from > to)
+		{
+			serial_outln("Bitmap Allocator: From address is greater than To address");
+			panic();
+		}
+
+		while (from <= to)
+		{
+			reserve_page(from);
+			from += PAGE_SIZE;
+		}
+	}
+
 	phys_addr allocate_page()
 	{
 		uint i = m_last_index;
