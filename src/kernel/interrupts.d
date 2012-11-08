@@ -6,6 +6,7 @@ import kernel.support;
 import kernel.serial;
 
 __gshared:
+nothrow:
 
 alias extern(C) void function(int vector, int code) isr_handler;
 alias extern(C) void function() idt_handler;

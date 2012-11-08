@@ -6,6 +6,7 @@ import core.vararg;
 import kernel.support;
 
 __gshared:
+nothrow:
 
 private enum SERIAL_PORT_A = 0x3F8;
 
@@ -99,50 +100,57 @@ void serial_outln(S...)(S args)
 
 void serial_out(...)
 {
-	for (int i = 0; i < _arguments.length; ++i)
+	// :S Not super happy about exceptions in the kernel!
+	// But it's localized, so I guess it's not that bad...
+	try
 	{
-		if (_arguments[i] == typeid(string))
+		for (int i = 0; i < _arguments.length; ++i)
 		{
-			string str = va_arg!(string)(_argptr);
-			write_string(str);
-		}
-		else if (_arguments[i] == typeid(ulong)
-				|| _arguments[i] == typeid(uint)
-				|| _arguments[i] == typeid(ushort)
-				|| _arguments[i] == typeid(ubyte))
-		{
-			uint val = va_arg!(uint)(_argptr);
-			char buffer[20];
-			for (int j = to_string_u(val, buffer); j < 20; ++j)
+			if (_arguments[i] == typeid(string))
 			{
-				serial_char(buffer[j]);
+				string str = va_arg!(string)(_argptr);
+				write_string(str);
 			}
-		}
-		else if (_arguments[i] == typeid(long)
-				|| _arguments[i] == typeid(int) 
-				|| _arguments[i] == typeid(short) 
-				|| _arguments[i] == typeid(byte))
-		{
-			int val = va_arg!(int)(_argptr);				
-			char buffer[21];
-			for (int j = to_string_i(val, buffer); j < 21; ++j)
+			else if (_arguments[i] == typeid(ulong)
+					|| _arguments[i] == typeid(uint)
+					|| _arguments[i] == typeid(ushort)
+					|| _arguments[i] == typeid(ubyte))
 			{
-				serial_char(buffer[j]);
+				uint val = va_arg!(uint)(_argptr);
+				char buffer[20];
+				for (int j = to_string_u(val, buffer); j < 20; ++j)
+				{
+					serial_char(buffer[j]);
+				}
 			}
-		}
-		else if (_arguments[i] == typeid(char))
-		{
-			serial_char(va_arg!(char)(_argptr));
-		}
-		else if (_arguments[i] == typeid(const(char)[]))
-		{
-			const(char)[] str = va_arg!(const(char)[])(_argptr);
-			foreach (c; str) serial_char(c);
-		}
-		else
-		{
-			write_string("serial_outln: Failed to match type");
+			else if (_arguments[i] == typeid(long)
+					|| _arguments[i] == typeid(int) 
+					|| _arguments[i] == typeid(short) 
+					|| _arguments[i] == typeid(byte))
+			{
+				int val = va_arg!(int)(_argptr);				
+				char buffer[21];
+				for (int j = to_string_i(val, buffer); j < 21; ++j)
+				{
+					serial_char(buffer[j]);
+				}
+			}
+			else if (_arguments[i] == typeid(char))
+			{
+				serial_char(va_arg!(char)(_argptr));
+			}
+			else if (_arguments[i] == typeid(const(char)[]))
+			{
+				const(char)[] str = va_arg!(const(char)[])(_argptr);
+				foreach (c; str) serial_char(c);
+			}
+			else
+			{
+				write_string("serial_outln: Failed to match type");
+			}
 		}
 	}
+	catch (Exception e)
+	{}
 }
 

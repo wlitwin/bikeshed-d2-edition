@@ -2,6 +2,9 @@ module kernel.vga;
 
 import core.vararg;
 
+__gshared:
+nothrow:
+
 void put_char(int x, int y, byte c) nothrow
 {
 	ushort* video = cast(ushort *) 0xB8000 + (y*80 + x);
@@ -56,7 +59,7 @@ void put_string(int x, int y, string msg)
 }
 
 private
-void write_string(ref int x, ref int y, string message) nothrow
+void write_string(ref int x, ref int y, string message)
 {
 	foreach(character; message)
 	{

@@ -1,5 +1,7 @@
 module kernel.support;
 
+nothrow:
+
 extern (C)
 {
 	ubyte  __inb(ushort port);

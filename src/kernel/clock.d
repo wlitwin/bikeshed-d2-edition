@@ -6,6 +6,7 @@ import kernel.support;
 import kernel.interrupts;
 
 __gshared:
+nothrow:
 uint system_time;
 
 int pin_wheel = 0;

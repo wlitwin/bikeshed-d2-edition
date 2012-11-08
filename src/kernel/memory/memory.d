@@ -82,7 +82,7 @@ init_memory()
 
 	// Reserve addresses in the physical allocator so they're not
 	// given out as addresses
-//	g_physicalAllocator.reserve_range(0x0, 0x100000);
+	g_physicalAllocator.reserve_range(0x0, 0x100000);
 
 	// Place the virtual allocator in the correct spot
 	va = emplace!BasicVirtualAllocator(_virt_allocator_space[]);

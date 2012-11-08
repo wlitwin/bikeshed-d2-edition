@@ -5,12 +5,14 @@ import kernel.interrupts;
 import kernel.serial;
 import kernel.support : panic;
 
+nothrow:
+
 extern (C) void
 isr_save()
 {
 	asm {
-		naked;
-		//serial_outln("Got to ISR save!");
+		// Don't create function preamble or cleanup
+		naked; 
 		// Need to save all of the registers
 		// because the CPU expects these to not change
 		pushad;  // 32-bytes
@@ -42,6 +44,10 @@ isr_save()
 	}
 }
 
+// Would like to turn these into a macro, but currently the templates
+// are being a little annoying. Using the templates blows the final binary
+// up to 16MiB, which is a little rediculous for the state of this kernel.
+// Thankfully Vim has magical powers and this didn't have to be typed by hand!
 extern (C) void idt_handler_0() { asm { naked; push 0; push 0; jmp isr_save; } }
 extern (C) void idt_handler_1() { asm { naked; push 0; push 1; jmp isr_save; } }
 extern (C) void idt_handler_2() { asm { naked; push 0; push 2; jmp isr_save; } }

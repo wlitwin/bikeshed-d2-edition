@@ -2,7 +2,7 @@
 
 template toDigit(int n)
 {
-	const string toDigit = "0123456789"[n .. n+1];
+	const string toDigit = "0123456789"[n];
 }
 
 template itoa(long n)
