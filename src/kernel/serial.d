@@ -146,7 +146,15 @@ void serial_out(...)
 			}
 			else
 			{
-				write_string("serial_outln: Failed to match type");
+				write_string("serial_outln: Failed to match type\n");
+				write_string("As integer: ");
+				uint val = va_arg!(uint)(_argptr);
+				char buffer[20];
+				for (int j = to_string_u(val, buffer); j < 20; ++j)
+				{
+					serial_char(buffer[j]);
+				}
+				serial_char('\n');
 			}
 		}
 	}
