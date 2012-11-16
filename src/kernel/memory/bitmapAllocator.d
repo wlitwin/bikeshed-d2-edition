@@ -52,6 +52,8 @@ class BitmapAllocator : IPhysicalAllocator
 		serial_outln("\tBitmap size: ", m_bitmapSize);
 		serial_outln("\tBitmap location: ", cast(uint) m_bitmap);
 		serial_outln("Bitmap Allocator: Finished\n");
+
+		// TODO update the end of the kernel
 	}
 
 	void reserve_page(phys_addr address)
@@ -107,7 +109,7 @@ class BitmapAllocator : IPhysicalAllocator
 		}
 
 		// Check if something weird happend
-		if (offset >= 32)
+		if (offset >= 32 || the_bit == 0)
 		{
 			serial_outln("Bitmap Allocator: Error finding free page!");
 			panic();
@@ -115,7 +117,7 @@ class BitmapAllocator : IPhysicalAllocator
 
 		m_bitmap[i] |= the_bit;
 
-		phys_addr address = i * PAGE_SIZE * 32;
+		phys_addr address = (i * PAGE_SIZE * 32) + (offset * PAGE_SIZE);
 		serial_outln("Bitmap Allocator: Giving out page ", address);
 		m_last_index = i;
 		return address;
