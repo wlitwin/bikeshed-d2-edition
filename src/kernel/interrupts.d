@@ -182,6 +182,7 @@ init_idt()
 	install_isr(INT_VEC_KEYBOARD, &__default_expected_handler);
 	install_isr(INT_VEC_SERIAL_PORT_1, &__default_expected_handler);
 	install_isr(INT_VEC_MYSTERY,  &__default_mystery_handler);
+	install_isr(INT_VEC_GENERAL_PROTECTION, &gpf_handler);
 
 	// We could check to see if they were on and turn them
 	// but leave them off for now and the caller will have
@@ -247,6 +248,13 @@ __default_expected_handler(int vector, int code)
 		serial_outln("Something's wrong!");
 		panic();
 	}
+}
+
+extern (C) void
+gpf_handler(int vector, int code)
+{
+	serial_outln("GPF: ", vector, " ", code);
+	panic();
 }
 
 extern (C) void
