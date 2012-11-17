@@ -34,6 +34,7 @@ class BasicVirtualAllocator : IVirtualAllocator
 {
 	private IPhysicalAllocator m_physAllocator;
 	private PageDirectory* m_kernelTable;
+	private PageDirectory* m_currentDirectory;
 
 nothrow:
 
@@ -122,6 +123,16 @@ nothrow:
 		return pd;
 	}
 
+	private void switch_page_directory(PageDirectory* pd)
+	{
+		m_currentDirectory = pd;
+		asm
+		{
+			mov EAX, [pd];
+			mov CR3, EAX;
+		}
+	}
+
 	private void enable_paging(ref MemoryInfo info)
 	{
 		m_kernelTable = allocate_page_directory();
@@ -164,15 +175,6 @@ void unset_paging_bit()
 	}
 }
 
-void switch_page_directory(PageDirectory* pd)
-{
-	asm
-	{
-		mov EAX, [pd];
-		mov CR3, EAX;
-	}
-}
-
 immutable(string[]) page_table_errors = 
 [
 	"Supervisory process tried to read a non-present page entry",
@@ -197,7 +199,10 @@ void isr_page_fault(int vector, int code)
 	}
 
 	serial_outln("US RW P - Description");
-	serial_outln(code & 0x4, code & 0x2, code & 0x1, page_table_errors[error_type]);
+	serial_outln(code & 0x4, "  ",
+				 code & 0x2, "  ",
+				 code & 0x1, "   ",
+				cast(string)page_table_errors[error_type]);
 	
 	serial_outln("Page Fault: ", vector, " ", code);
 	panic();
