@@ -11,12 +11,6 @@ import kernel.memory.iVirtualAllocator;
 __gshared:
 nothrow:
 
-enum PG_PRESENT = 0x1;
-enum PG_READ_WRITE = 0x2;
-enum PG_USER = 0x4;
-enum PG_WRITE_THRU = 0x8;
-enum PG_CACHE_DISABLE = 0x10;
-
 struct PageTable
 {
 	virt_addr addrs[1024];
@@ -41,6 +35,8 @@ class BasicVirtualAllocator : IVirtualAllocator
 	private IPhysicalAllocator m_physAllocator;
 	private PageDirectory* m_kernelTable;
 
+nothrow:
+
 	void initialize(IPhysicalAllocator phys_allocator, ref MemoryInfo info)
 	{
 		serial_outln("BVA: Initializing");
@@ -58,6 +54,18 @@ class BasicVirtualAllocator : IVirtualAllocator
 	private uint addr_to_pt_index(virt_addr address)
 	{
 		return (address >> 12) & 0x03FF;
+	}
+
+	void map_range(PageDirectory* pd,
+			const phys_addr p_low, const phys_addr p_hi,
+			const virt_addr v_low, const virt_addr v_hi)
+	{
+		panic("map_range() not yet implemented");					
+	}
+
+	void map_page(virt_addr address, uint permissions)
+	{
+		panic("map_page() not yet implemented");					
 	}
 
 	void identity_map(PageDirectory* pd, const virt_addr low, const virt_addr hi)
@@ -113,9 +121,8 @@ class BasicVirtualAllocator : IVirtualAllocator
 
 		return pd;
 	}
-	
 
-	void enable_paging(ref MemoryInfo info)
+	private void enable_paging(ref MemoryInfo info)
 	{
 		m_kernelTable = allocate_page_directory();
 
@@ -147,6 +154,16 @@ void set_paging_bit()
 	}
 }
 
+void unset_paging_bit()
+{
+	asm
+	{
+		mov EAX, CR0;
+		and EAX, 0x7FFFFFFF;
+		mov CR0, EAX;
+	}
+}
+
 void switch_page_directory(PageDirectory* pd)
 {
 	asm
@@ -156,9 +173,32 @@ void switch_page_directory(PageDirectory* pd)
 	}
 }
 
+immutable(string[]) page_table_errors = 
+[
+	"Supervisory process tried to read a non-present page entry",
+	"Supervisory process tried to read a page and caused a protection fault",
+	"Supervisory process tried to write to a non-present page entry",
+	"Supervisory process tried to write a page and cause a protection fault",
+	"User process tried to read a non-present page entry",
+	"User process tried to read a page and caused a protection fault",
+	"User process tried to write a non-present page entry",
+	"User process tried to write a page and caused a protection fault"
+];
+
 extern (C)
 void isr_page_fault(int vector, int code)
 {
+	uint error_type = code & 0x7;
+	uint cr2_val;
+	asm
+	{
+		mov EAX, CR2;
+		mov cr2_val, EAX;
+	}
+
+	serial_outln("US RW P - Description");
+	serial_outln(code & 0x4, code & 0x2, code & 0x1, page_table_errors[error_type]);
+	
 	serial_outln("Page Fault: ", vector, " ", code);
 	panic();
 }
