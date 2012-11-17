@@ -81,19 +81,32 @@ init_memory()
 	ba = emplace!BitmapAllocator(_phys_allocator_space[]);
 	g_physicalAllocator = ba;
 
-	// Reserve addresses in the physical allocator so they're not
-	// given out as addresses
-	g_physicalAllocator.reserve_range(0x0, 0x100000);
-
 	// Place the virtual allocator in the correct spot
 	va = emplace!BasicVirtualAllocator(_virt_allocator_space[]);
 	g_virtualAllocator = va;
 
+	//============================================================================
 	// Initialize the physical allocator
+	//============================================================================
 	g_physicalAllocator.initialize(g_memoryInfo);
 
+	// Reserve addresses in the physical allocator so they're not
+	// given out as addresses
+	g_physicalAllocator.reserve_range(0x0, 0x200000);
+
+	//============================================================================
+	// End of physical allocator initialization
+	//============================================================================
+
+	//============================================================================
 	// Initialize the virtual allocator
+	//============================================================================
+
 	g_virtualAllocator.initialize(g_physicalAllocator, g_memoryInfo);
+
+	//============================================================================
+	// End of virtual allocator initialization
+	//============================================================================
 
 	// Setup the kernel's heap
 	malloc_initialize();
