@@ -1,5 +1,7 @@
 module kernel.support;
 
+import kernel.serial : serial_outln;
+
 nothrow:
 
 extern (C)
@@ -11,6 +13,13 @@ extern (C)
 	void __outb(ushort port, ubyte  val);
 	void __outw(ushort port, ushort val);
 	void __outl(ushort port, uint   val);
+}
+
+void
+panic(string message)
+{
+	serial_outln(message);
+	panic();
 }
 
 void
