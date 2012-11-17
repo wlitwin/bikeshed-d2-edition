@@ -1,5 +1,8 @@
 module kernel.memory.util;
 
+__gshared:
+nothrow:
+
 alias immutable(ubyte) iubyte;
 
 extern (C) void
