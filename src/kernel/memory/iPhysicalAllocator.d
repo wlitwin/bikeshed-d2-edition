@@ -8,6 +8,8 @@ alias uint phys_addr;
 
 interface IPhysicalAllocator
 {
+nothrow:
+
 	// Do whatever is needed to initialize
 	// the physical memory manager
 	void initialize(ref MemoryInfo info);
