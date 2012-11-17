@@ -199,19 +199,15 @@ init_pic()
 	__outb(PIC_MASTER_CMD_PORT, PIC_ICW1BASE | PIC_NEEDICW4);
 	__outb(PIC_SLAVE_CMD_PORT,  PIC_ICW1BASE | PIC_NEEDICW4);
 
-	serial_outln("pic 2");
 	__outb(PIC_MASTER_IMR_PORT, 0x20);
 	__outb(PIC_SLAVE_IMR_PORT,  0x28);
 
-	serial_outln("pic 3");
 	__outb(PIC_MASTER_IMR_PORT, PIC_MASTER_SLAVE_LINE);
 	__outb(PIC_SLAVE_IMR_PORT,  PIC_SLAVE_ID);
 
-	serial_outln("pic 3");
 	__outb(PIC_MASTER_IMR_PORT, PIC_86MODE);
 	__outb(PIC_SLAVE_IMR_PORT,  PIC_86MODE);
 	
-	serial_outln("pic 4");
 	__outb(PIC_MASTER_IMR_PORT, 0x0);
 	__outb(PIC_SLAVE_IMR_PORT,  0x0);
 	serial_outln("Finished with the pic");
