@@ -18,12 +18,12 @@ nothrow:
 
 	private uint phys_to_index(phys_addr address)
 	{
-		return address / PAGE_SIZE / 32;
+		return cast(uint)address / PAGE_SIZE / 32;
 	}
 
 	private uint phys_to_offset(phys_addr address)
 	{
-		return (address / PAGE_SIZE) % 32;
+		return (cast(uint)address / PAGE_SIZE) % 32;
 	}
 
 	void initialize(ref MemoryInfo info)
@@ -64,13 +64,13 @@ nothrow:
 		if (index >= m_bitmapSize)
 			return;
 
-		serial_outln("Bitmap Allocator: Reserving page ", address);
 		uint offset = phys_to_offset(address);
 		m_bitmap[index] |= (1 << offset);
 	}
 
 	void reserve_range(phys_addr from, phys_addr to)
 	{
+		serial_outln("Bitmap Allocator: Reserving range ", cast(uint)from, " - ", cast(uint)to);
 		if (from > to)
 		{
 			serial_outln("Bitmap Allocator: From address is greater than To address");
