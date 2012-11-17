@@ -14,6 +14,8 @@ class BitmapAllocator : IPhysicalAllocator
 	private uint* m_bitmap;
 	private uint m_last_index;
 
+nothrow:
+
 	private uint phys_to_index(phys_addr address)
 	{
 		return address / PAGE_SIZE / 32;
