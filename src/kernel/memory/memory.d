@@ -3,6 +3,7 @@ module kernel.memory.memory;
 import kernel.memory.emplace;
 
 import kernel.serial;
+import kernel.memory.malloc;
 import kernel.memory.iPhysicalAllocator;
 import kernel.memory.iVirtualAllocator;
 import kernel.memory.bitmapAllocator;
@@ -93,6 +94,9 @@ init_memory()
 
 	// Initialize the virtual allocator
 	g_virtualAllocator.initialize(g_physicalAllocator, g_memoryInfo);
+
+	// Setup the kernel's heap
+	malloc_initialize();
 
 	// Print some debug information
 	serial_outln("\tMemory Size: ", memory_total);
