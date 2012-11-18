@@ -5,7 +5,33 @@ import kernel.interrupts;
 import kernel.serial;
 import kernel.support : panic;
 
+__gshared:
 nothrow:
+
+struct InterruptStack
+{
+	align(4):
+	uint SS;
+	uint GS;
+	uint FS;
+	uint ES;
+	uint DS;
+	uint EDI;
+	uint ESI;
+	uint EBP;
+	uint ESP; // ESP prior to contents being pushed
+	uint EBX;
+	uint EDX;
+	uint ECX;
+	uint EAX;
+	uint vector;
+	uint error_code;
+	uint EIP; // Instruction causing the error
+	uint CS;
+	uint EFL;
+}
+
+InterruptStack* g_interruptContext = void;
 
 extern (C) void
 isr_save()
@@ -13,6 +39,7 @@ isr_save()
 	asm {
 		// Don't create function preamble or cleanup
 		naked; 
+
 		// Need to save all of the registers
 		// because the CPU expects these to not change
 		pushad;  // 32-bytes
@@ -22,6 +49,10 @@ isr_save()
 		push GS; // 48-byte
 		push SS; // 52-byte
 
+		// Set the current interrupt context
+		mov EAX, ESP;
+		add EAX, 0;
+		mov g_interruptContext, EAX;
 
 		mov EAX, [ESP + 52]; // ISR number
 		mov EBX, [ESP + 56]; // Error code
