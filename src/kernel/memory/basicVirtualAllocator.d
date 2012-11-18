@@ -4,6 +4,7 @@ import kernel.serial;
 import kernel.memory.util : memclr;
 import kernel.memory.memory;
 import kernel.interrupts;
+import kernel.interrupt_defs;
 import kernel.support;
 import kernel.memory.iPhysicalAllocator;
 import kernel.memory.iVirtualAllocator;
@@ -34,7 +35,6 @@ class BasicVirtualAllocator : IVirtualAllocator
 {
 	private IPhysicalAllocator m_physAllocator;
 	private PageDirectory* m_kernelTable;
-	private PageDirectory* m_currentDirectory;
 
 nothrow:
 
@@ -52,9 +52,24 @@ nothrow:
 		return address >> 22;	
 	}
 
+	private virt_addr align_address(virt_addr address)
+	{
+		return address & 0xFFFFF000;
+	}
+
 	private uint addr_to_pt_index(virt_addr address)
 	{
 		return (address >> 12) & 0x03FF;
+	}
+
+	private PageDirectory* get_current_page_directory()
+	{
+		return cast(PageDirectory *)0xFFFFF000;
+	}
+
+	private PageTable* get_page_table(uint index)
+	{
+		return cast(PageTable *)(cast(uint*)0xFFC00000 + (0x400 * index));
 	}
 
 	void map_range(PageDirectory* pd,
@@ -66,9 +81,76 @@ nothrow:
 
 	void map_page(virt_addr address, uint permissions)
 	{
-		panic("map_page() not yet implemented");					
+		PageDirectory* pd = get_current_page_directory();
+		uint pg_dir_index = addr_to_pd_index(address);
+		uint pg_tbl_index = addr_to_pt_index(address);
+		PageTable* page_table = get_page_table(pg_dir_index);
+
+		if ((pd.tables[pg_dir_index] & PG_PRESENT) == 0)
+		{
+			// Need to allocate a page table
+			uint phys_page_table = cast(uint)m_physAllocator.allocate_page();
+			pd.tables[pg_dir_index] = phys_page_table | 3;
+
+			memclr(cast(void *)page_table, PAGE_SIZE);
+		}
+
+		if (page_table.addrs[pg_tbl_index] != 0)
+		{
+			panic("BVA: map_page - address is already mapped!");
+		}
+
+		// Get a new physical address to map
+		uint phys_block = cast(uint)m_physAllocator.allocate_page();
+		page_table.addrs[pg_tbl_index] = phys_block | (permissions & 0xFFF) | PG_PRESENT;
+
+		// Flush the TLB
+		uint pd_asm = cast(uint)pd & 0xFFFFF000;
+		uint pt_asm = cast(uint)page_table & 0xFFFFF000;
+		asm
+		{
+			invlpg address;
+			invlpg pt_asm;
+			invlpg pd_asm;
+		}
 	}
 
+	void unmap_page(virt_addr address)
+	{
+		PageDirectory* pd = get_current_page_directory();
+		uint pg_dir_index = addr_to_pd_index(address);
+		uint pg_tbl_index = addr_to_pt_index(address);
+		PageTable* page_table = get_page_table(pg_dir_index);
+
+		// Check if the page directory entry is present. 
+		// If it's not, then we can return
+		if ((pd.tables[pg_dir_index] & PG_PRESENT) == 0)
+		{
+			return;
+		}
+
+		if ((page_table.addrs[pg_tbl_index] & PG_PRESENT) > 0)
+		{
+			m_physAllocator.free_page(cast(phys_addr)page_table.addrs[pg_tbl_index]);
+		}
+
+		page_table.addrs[pg_tbl_index] = 0;
+
+		// TODO - check if all the page table entries are free
+		// and free the page directory entry
+
+		// Flush the TLB
+		uint pd_asm = cast(uint)pd & 0xFFFFF000;
+		uint pt_asm = cast(uint)page_table & 0xFFFFF000;
+		asm
+		{
+			invlpg address;
+			invlpg pt_asm;
+			invlpg pd_asm;
+		}
+	}
+
+	// Only works when paging is off
 	void identity_map(PageDirectory* pd, const virt_addr low, const virt_addr hi)
 	{
 		// First check if there is a page table at the page directory index	
@@ -113,19 +195,8 @@ nothrow:
 		} while(pd_index < pd_index_end);
 	}
 
-	private PageDirectory* allocate_page_directory()
-	{
-		PageDirectory* pd = cast(PageDirectory *) m_physAllocator.allocate_page();	
-		// Make sure it's zero'd out, forgetting to do this can cause all
-		// kinds of fun, hard to track down bugs
-		memclr(cast(void *) pd, PAGE_SIZE); 
-
-		return pd;
-	}
-
 	private void switch_page_directory(PageDirectory* pd)
 	{
-		m_currentDirectory = pd;
 		asm
 		{
 			mov EAX, [pd];
@@ -135,7 +206,12 @@ nothrow:
 
 	private void enable_paging(ref MemoryInfo info)
 	{
-		m_kernelTable = allocate_page_directory();
+		m_kernelTable = cast(PageDirectory *) m_physAllocator.allocate_page();	
+		// Make sure it's zero'd out, forgetting to do this can cause all
+		// kinds of fun, hard to track down bugs
+		memclr(cast(void *) m_kernelTable, PAGE_SIZE); 
+
+		m_kernelTable.tables[1023] = cast(uint)m_kernelTable | PG_READ_WRITE | PG_PRESENT;
 
 		// Identity map the first megabyte
 		identity_map(m_kernelTable, 0x0, 0x100000);
@@ -198,12 +274,34 @@ void isr_page_fault(int vector, int code)
 		mov cr2_val, EAX;
 	}
 
+/*	serial_outln("Interrupt context:\n", 
+			g_interruptContext.EFL, "\n", 
+			g_interruptContext.CS, "\n", 
+			g_interruptContext.EIP, "\n", 
+			g_interruptContext.error_code, "\n", 
+			g_interruptContext.vector, "\n", 
+			g_interruptContext.EAX, "\n", 
+			g_interruptContext.ECX, "\n", 
+			g_interruptContext.EDX, "\n",
+			g_interruptContext.EBX, "\n",
+			g_interruptContext.ESP, "\n",
+			g_interruptContext.EBP, "\n",
+			g_interruptContext.ESI, "\n",
+			g_interruptContext.EDI, "\n",
+			g_interruptContext.DS, "\n",
+			g_interruptContext.ES, "\n",
+			g_interruptContext.FS, "\n",
+			g_interruptContext.GS, "\n",
+			g_interruptContext.SS);
+			*/
+
 	serial_outln("US RW P - Description");
 	serial_outln(code & 0x4, "  ",
 				 code & 0x2, "  ",
 				 code & 0x1, "   ",
 				cast(string)page_table_errors[error_type]);
 	
+	serial_outln("Faulting address: ", cr2_val);
 	serial_outln("Page Fault: ", vector, " ", code);
 	panic();
 }
