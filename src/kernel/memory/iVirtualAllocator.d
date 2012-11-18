@@ -19,4 +19,5 @@ nothrow:
 	void initialize(IPhysicalAllocator phys_allocator, ref MemoryInfo info);
 
 	void map_page(virt_addr address, uint permissions);
+	void unmap_page(virt_addr address);
 }
