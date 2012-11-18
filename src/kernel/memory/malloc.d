@@ -33,6 +33,30 @@ enum HEAP_INITIAL_PAGES = 2;
 enum HEAP_START_LOCATION = 0xD0000000;
 enum HEAP_MAX_LOCATION   = 0xE0000000;
 
+extern (C)
+public void* malloc(uint size)
+{
+	return kmalloc(size);
+}
+
+extern (C)
+public void* calloc(uint size)
+{
+	return kcalloc(size);
+}
+
+extern (C)
+public void* realloc(void* ptr, size_t size)
+{
+	return null;
+}
+
+extern (C)
+public void free(void* ptr)
+{
+	kfree(ptr);
+}
+
 public void malloc_initialize()
 {
 	kernel_heap.start_address = cast(void *) HEAP_START_LOCATION;
@@ -51,6 +75,10 @@ public void malloc_initialize()
 	kernel_heap.start_node.size = HEAP_INITIAL_PAGES * PAGE_SIZE;
 	kernel_heap.start_node.next = null;
 	kernel_heap.start_node.prev = null;
+
+	//kmalloc_test_1();
+	void* alloc = kmalloc(1000);
+	kfree(alloc);
 }
 
 void malloc_info()
@@ -136,7 +164,10 @@ public void* kmalloc(uint size)
 	current_node.next = cast(LinkedNode *)0xDEADBEEF; // Sentinal pointers to see if something is wrong later
 	current_node.prev = cast(LinkedNode *)0xCAFEBABE;
 
-	return cast(void *)(cast(uint)current_node + HEADER_SIZE);
+	void* addr = cast(void *)(cast(uint)current_node + HEADER_SIZE);
+
+	serial_outln("Allocating: ", addr);
+	return addr;
 }
 
 public void* kcalloc(uint size)
@@ -149,6 +180,8 @@ public void* kcalloc(uint size)
 
 public void kfree(void* address)
 {
+	serial_outln("Freeing: ", address);
+
 	// Do nothing if we've been given a bad value
 	if (address < kernel_heap.start_address || address > kernel_heap.end_address)
 	{
@@ -248,4 +281,58 @@ public void kfree(void* address)
 		// Update middle_node's size
 		middle_node.size += last_node.size;
 	}
+}
+
+void kmalloc_test_1()
+{
+	uint amt = 1000;
+	uint ptrs[1000];
+
+	uint total_allocated = 0;
+	for (uint i = 0; i < amt; ++i)
+	{
+		uint size = krand() % 8192;
+		ptrs[i] = cast(uint)kmalloc(size);
+		total_allocated += size;
+	}
+
+	uint num_freed = 0;
+	while (num_freed != amt / 2)
+	{
+		uint index = krand() % amt;
+		if (ptrs[index] != 0)
+		{
+			kfree(cast(void*)ptrs[index]);
+			ptrs[index] = 0;
+			++num_freed;
+		}
+	}
+
+	for (uint i = 0; i < amt; ++i)
+	{
+		if (ptrs[i] == 0)
+		{
+			uint size = krand() % 8192;
+			ptrs[i] = cast(uint)kmalloc(size);
+			total_allocated += size;
+		}
+	}
+
+	num_freed = 0;
+	while (num_freed != amt)
+	{
+		uint index = krand() % amt;
+		if (ptrs[index] != 0)
+		{
+			kfree(cast(void*)ptrs[index]);
+			ptrs[index] = 0;
+			++num_freed;
+		}
+	}
+
+	serial_outln("Total amount allocated: ", total_allocated);
+
+	malloc_info();
+
+	asm { cli; hlt; }
 }
