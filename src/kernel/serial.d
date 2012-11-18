@@ -7,10 +7,11 @@ import kernel.support;
 
 __gshared:
 nothrow:
+private:
 
-private enum SERIAL_PORT_A = 0x3F8;
+enum SERIAL_PORT_A = 0x3F8;
 
-void init_serial_debug()
+public void init_serial_debug()
 {
 	__outb(SERIAL_PORT_A + 1, 0x00);
 	__outb(SERIAL_PORT_A + 3, 0x80);
@@ -26,20 +27,20 @@ void serial_printf()
 
 }
 
-private int serial_transmit_empty()
+int serial_transmit_empty()
 {
 	return __inb(SERIAL_PORT_A + 5) & 0x20;
 }
 
-private void serial_char(char c)
+void serial_char(char c)
 {
 	while (serial_transmit_empty() == 0) { }
 	__outb(SERIAL_PORT_A, c);
 }
 
-private string hexdigits = "0123456789ABCDEF";
+string hexdigits = "0123456789ABCDEF";
 
-private int to_string_u(ulong val, ref char buffer[20], int index = 19)
+int to_string_u(ulong val, ref char buffer[20], int index = 19)
 {
 	do
 	{
@@ -52,7 +53,7 @@ private int to_string_u(ulong val, ref char buffer[20], int index = 19)
 	return index+1;
 }
 
-private int to_string_i(long val, ref char buffer[21], int index = 20)
+int to_string_i(long val, ref char buffer[21], int index = 20)
 {
 	bool negative = val < 0;
 	if (negative)
@@ -77,7 +78,7 @@ private int to_string_i(long val, ref char buffer[21], int index = 20)
 	return index+1;
 }
 
-private void write_string(string s)
+void write_string(string s)
 {
 	foreach (c ; s)
 	{
@@ -85,7 +86,7 @@ private void write_string(string s)
 	}
 }
 
-private void write_string(char[] s)
+void write_string(char[] s)
 {
 	foreach (c ; s)
 	{
@@ -93,12 +94,12 @@ private void write_string(char[] s)
 	}
 }
 
-void serial_outln(S...)(S args)
+public void serial_outln(S...)(S args)
 {
 	serial_out(args, '\n');
 }
 
-void serial_out(...)
+public void serial_out(...)
 {
 	// :S Not super happy about exceptions in the kernel!
 	// But it's localized, so I guess it's not that bad...
