@@ -5,6 +5,16 @@ nothrow:
 
 alias immutable(ubyte) iubyte;
 
+private uint m_z = 0x12345678;
+private uint m_w = 0xC001C0DE;
+uint krand()
+{
+	m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+	m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+
+	return (m_z << 16) + m_w;
+}
+
 extern (C) void
 memclr(void* ptr, size_t size)
 {
