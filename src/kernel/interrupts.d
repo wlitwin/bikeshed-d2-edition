@@ -14,7 +14,7 @@ alias extern(C) void function() idt_handler;
 isr_handler __isr_table[256];
 idt_handler __idt_table[256];
 
-enum IDT_ADDRESS = 0x2500;
+private enum IDT_ADDRESS = 0x2500;
 
 enum INT_VEC_DIVIDE_ERROR    = 0x0;
 enum INT_VEC_DEBUG_EXCEPTION = 0x1;
@@ -57,15 +57,6 @@ enum PIC_EOI = 0x20;
 enum IDT_PRESENT = 0x8000;
 enum IDT_DPL_0 = 0x0000;
 enum IDT_INT32_GATE = 0x0e00;
-
-private struct 
-IDT_Gate
-{
-	short offset_15_0;
-	short segment_selector;
-	short flags;
-	short offset_31_16;
-}
 
 public void
 enable_interrupts()
@@ -143,8 +134,6 @@ template createIDTStubs(long howMany = 255)
 	}
 }
 
-
-
 template initializeIDTHandlers(long howMany = 255)
 {
 	static if (howMany < 0)
@@ -211,6 +200,15 @@ init_pic()
 	__outb(PIC_MASTER_IMR_PORT, 0x0);
 	__outb(PIC_SLAVE_IMR_PORT,  0x0);
 	serial_outln("Finished with the pic");
+}
+
+struct
+IDT_Gate
+{
+	short offset_15_0;
+	short segment_selector;
+	short flags;
+	short offset_31_16;
 }
 
 void
