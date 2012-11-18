@@ -28,44 +28,6 @@ double strtold(const char* str, char** endptr)
 	return 0.0;
 }
 
-extern(C)
-void* malloc()
-{
-	int val = 0x11111111;
-	asm {
-		mov EAX, val;
-		hlt;
-	}
-	return null;
-}
-
-extern (C)
-void* calloc()
-{
-	int val = 0x22222222;
-	asm {
-		mov EAX, val;
-		hlt;
-	}
-	return null;
-}
-
-extern(C)
-void* realloc(void* ptr, size_t size)
-{
-	return null;
-}
-
-extern (C)
-void free(void* ptr)
-{
-	int val = 0x33333333;
-	asm {
-		mov EAX, val;
-		hlt;
-	}
-}
-
 extern (C)
 int pthread_mutex_init(void* param)
 {
