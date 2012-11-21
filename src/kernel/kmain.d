@@ -4,6 +4,7 @@ import kernel.interrupts;
 import kernel.clock;
 import kernel.memory.memory;
 import kernel.process.scheduler;
+import kernel.syscall.syscalls;
 
 // From the D runtime
 //import core.runtime;
@@ -28,14 +29,17 @@ kmain()
 		init_serial_debug();
 
 		serial_outln("TESTING TESTING\n", 10, "\n", -10, "\n");
-
+		// Must be first
 		init_interrupts();
 		init_clock();
-
+		// Memory needs to happen before any other modules
 		init_memory();
 		put_string(0, 1, "Initialized Memory");
 
+		// All other modules that depend on linkedlist or memory allocation
 		scheduler_initialize();
+
+		syscalls_initialize();
 
 		serial_outln("Finished loading the kernel");
 		// Don't bother terminating the runtime
