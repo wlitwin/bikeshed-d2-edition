@@ -98,7 +98,7 @@ nothrow:
 		return false;
 	}
 
-	bool insert_ordered(ref T val)
+	bool insert_ordered(ref T val, bool function(T t1, T t2) nothrow compare)
 	{
 		LinkedNode!T* new_node = cast(LinkedNode!T*)kmalloc(LinkedNode!T.sizeof);
 
@@ -117,7 +117,7 @@ nothrow:
 		{
 			// Search and find out where to place this node
 			LinkedNode!T* node = head; 
-			while (node != null && node.data < new_node.data)
+			while (node != null && compare(node.data, new_node.data))
 			{
 				node = node.next;
 			}
@@ -173,6 +173,31 @@ nothrow:
 		}
 
 		++size;
+		return true;
+	}
+
+	bool remove_front(out T outval)
+	{
+		if (empty())
+		{
+			return false;
+		}
+
+		outval = head.data;	
+
+		if (head == tail)
+		{
+			kfree(cast(void*)head);
+			head = tail = null;
+		}
+		else
+		{
+			head = head.next;
+			kfree(cast(void*)head.prev);
+			head.prev = null;
+		}
+
+		--size;
 		return true;
 	}
 
