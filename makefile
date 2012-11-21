@@ -53,10 +53,12 @@ kernel: clean bootloader fancycat clib
 	$(DC) $(D_FLAGS) -c src/kernel/support.d -of$(OBJ_DIR)/support.o
 	$(DC) $(D_FLAGS) -c src/kernel/serial.d -of$(OBJ_DIR)/serial.o
 	$(DC) $(D_FLAGS) -c src/kernel/memory/malloc.d -of$(OBJ_DIR)/kmalloc.o
+	$(DC) $(D_FLAGS) -c src/kernel/linkedlist.d -of$(OBJ_DIR)/linkedlist.o
+	$(DC) $(D_FLAGS) -c src/kernel/queue.d -of$(OBJ_DIR)/queue.o
 	@echo
 	
-	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
-	cd $(OBJ_DIR); $(LD) -m elf_i386 --gc-sections -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.o
+	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o linkedlist.o queue.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
+	cd $(OBJ_DIR); $(LD) -m elf_i386 --gc-sections -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o linkedlist.o queue.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.o
 	$(OUTPUT_DIR)/FancyCat 0x100000 $(OUTPUT_DIR)/kernel.b
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
