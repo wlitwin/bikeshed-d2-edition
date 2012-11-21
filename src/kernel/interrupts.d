@@ -248,6 +248,7 @@ extern (C) void
 gpf_handler(int vector, int code)
 {
 	serial_outln("GPF: ", vector, " ", code);
+	serial_outln("Offending instruction: ", g_interruptContext.EIP);
 	panic();
 }
 
