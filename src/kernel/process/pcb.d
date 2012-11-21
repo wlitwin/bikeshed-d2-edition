@@ -11,6 +11,11 @@ alias ushort Pid;
 alias uint Stack;
 alias InterruptContext Context;
 
+uint RET(ProcessControlBlock* pcb)
+{
+	return pcb.context.EAX;
+}
+
 enum Quantum : ubyte
 {
 	STANDARD = 10,
