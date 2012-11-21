@@ -8,7 +8,7 @@ import kernel.support : panic;
 __gshared:
 nothrow:
 
-struct InterruptStack
+struct InterruptContext
 {
 	align(4):
 	uint SS;
@@ -31,7 +31,7 @@ struct InterruptStack
 	uint EFL;
 }
 
-InterruptStack* g_interruptContext = void;
+InterruptContext* g_interruptContext = void;
 
 extern (C) void
 isr_save()
