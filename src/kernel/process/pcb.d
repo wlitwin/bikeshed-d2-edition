@@ -1,6 +1,7 @@
 module kernel.process.pcb;
 
 import kernel.interrupt_defs : InterruptContext;
+import kernel.memory.iVirtualAllocator : PageDirectory;
 
 __gshared:
 nothrow:
@@ -9,6 +10,11 @@ alias uint Time;
 alias ushort Pid;
 alias uint Stack;
 alias InterruptContext Context;
+
+enum Quantum : ubyte
+{
+	STANDARD = 10,
+}
 
 enum State : ubyte
 {
@@ -43,6 +49,7 @@ nothrow:
 	Context* context;
 	Stack* stack;
 	Time wakeup;
+	PageDirectory* page_directory;
 
 	// 2-byte fields
 	Pid pid;
@@ -51,5 +58,5 @@ nothrow:
 	// 1-byte fields
 	State state;       // Current process state
 	Priority priority; // Current process priority
-	ubyte quantum;     // Remaining process quantum
+	Quantum quantum;     // Remaining process quantum
 }
