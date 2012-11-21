@@ -3,6 +3,7 @@ import kernel.serial;
 import kernel.interrupts;
 import kernel.clock;
 import kernel.memory.memory;
+import kernel.process.scheduler;
 
 // From the D runtime
 //import core.runtime;
@@ -33,6 +34,8 @@ kmain()
 
 		init_memory();
 		put_string(0, 1, "Initialized Memory");
+
+		scheduler_initialize();
 
 		serial_outln("Finished loading the kernel");
 		// Don't bother terminating the runtime
