@@ -16,15 +16,9 @@ extern (C)
 }
 
 void
-panic(string message)
+panic(S...)(S args)
 {
-	serial_outln(message);
-	panic();
-}
-
-void
-panic()
-{
+	serial_outln(args);
 	asm
 	{
 		cli;
