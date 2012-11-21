@@ -12,25 +12,6 @@ import kernel.memory.iVirtualAllocator;
 __gshared:
 nothrow:
 
-struct PageTable
-{
-	virt_addr addrs[1024];
-}
-
-struct PageDirectory
-{
-	union
-	{
-		phys_addr tables[1024];
-		PageTable* ptables[1024];
-	}
-
-	PageTable* get_page_table(uint index) const nothrow
-	{
-		return cast(PageTable *) (tables[index] & 0xFFFFF000);
-	}
-}
-
 class BasicVirtualAllocator : IVirtualAllocator
 {
 	private IPhysicalAllocator m_physAllocator;
@@ -193,15 +174,6 @@ nothrow:
 			// Increment the page directory index
 			++pd_index;
 		} while(pd_index < pd_index_end);
-	}
-
-	private void switch_page_directory(PageDirectory* pd)
-	{
-		asm
-		{
-			mov EAX, [pd];
-			mov CR3, EAX;
-		}
 	}
 
 	private void enable_paging(ref MemoryInfo info)
