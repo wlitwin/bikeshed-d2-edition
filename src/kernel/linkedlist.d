@@ -1,6 +1,10 @@
 module kernel.linkedlist;
 import kernel.memory.malloc;
 
+// A quick note - This linked list will deallocate the entire LinkedNode when
+// removing something from the list. This means if T is not a pointer or a
+// simple copyable type then it will be invalid memory.
+
 __gshared:
 nothrow:
 
@@ -214,6 +218,3 @@ nothrow:
 			return T.init;	
 	}
 }
-
-LinkedList!(void*) g_list = void;
-LinkedList!(int) g_list2 = void;
