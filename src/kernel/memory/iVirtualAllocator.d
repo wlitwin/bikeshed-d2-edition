@@ -3,6 +3,9 @@ module kernel.memory.iVirtualAllocator;
 import kernel.memory.memory;
 import kernel.memory.iPhysicalAllocator;
 
+__gshared:
+nothrow:
+
 alias uint virt_addr;
 
 enum PG_PRESENT = 0x1;
@@ -11,6 +14,24 @@ enum PG_USER = 0x4;
 enum PG_WRITE_THRU = 0x8;
 enum PG_CACHE_DISABLE = 0x10;
 
+struct PageTable
+{
+	virt_addr addrs[1024];
+}
+
+struct PageDirectory
+{
+	union
+	{
+		phys_addr tables[1024];
+		PageTable* ptables[1024];
+	}
+
+	PageTable* get_page_table(uint index) const nothrow
+	{
+		return cast(PageTable *) (tables[index] & 0xFFFFF000);
+	}
+}
 
 interface IVirtualAllocator
 {
@@ -20,4 +41,15 @@ nothrow:
 
 	void map_page(virt_addr address, uint permissions);
 	void unmap_page(virt_addr address);
+
 }
+
+public void switch_page_directory(PageDirectory* pd)
+{
+	asm
+	{
+		mov EAX, [pd];
+		mov CR3, EAX;
+	}
+}
+
