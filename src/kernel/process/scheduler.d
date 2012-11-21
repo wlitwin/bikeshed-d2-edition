@@ -5,6 +5,7 @@ import kernel.process.pcb;
 import kernel.linkedlist;
 import kernel.serial;
 import kernel.support;
+import kernel.memory.malloc;
 import kernel.memory.iVirtualAllocator : switch_page_directory;
 
 __gshared:
@@ -59,7 +60,26 @@ schedule(ProcessControlBlock* pcb)
 private void
 cleanup(ProcessControlBlock* pcb)
 {
-	// TODO - Implement cleaning up processes
+	if (pcb == null)
+	{
+		return;
+	}
+
+	pcb.state = State.FREE;
+
+	if (pcb != g_currentPCB)
+	{
+		// TODO - Cleanup PCB's page directory
+		panic("Cleanup NOT IMPLEMENTED!");
+	}
+	else
+	{
+		// TODO - Cleanup the page directory
+		//      - Switch to the kernel's page directory
+		panic("Cleanup NOT IMPLEMENTED!");
+	}
+
+	kfree(cast(void*)pcb);
 }
 
 public void
