@@ -2,7 +2,9 @@ module kernel.support;
 
 import kernel.serial : serial_outln;
 
+__gshared:
 nothrow:
+public:
 
 extern (C)
 {
