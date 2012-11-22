@@ -18,6 +18,8 @@ private enum NUMBER_OF_READY_QUEUES = Priority.max + 1;
 private alias LinkedList!(ProcessControlBlock*) ReadyQueue;
 private ReadyQueue[NUMBER_OF_READY_QUEUES] g_ready_queues;
 
+public LinkedList!(ProcessControlBlock*) g_pcb_list;
+
 public void 
 scheduler_initialize()
 {
@@ -57,7 +59,7 @@ schedule(ProcessControlBlock* pcb)
 	}
 }
 
-private void
+public void
 cleanup(ProcessControlBlock* pcb)
 {
 	if (pcb == null)
@@ -66,6 +68,9 @@ cleanup(ProcessControlBlock* pcb)
 	}
 
 	pcb.state = State.FREE;
+
+	// Remove it from the global list
+	g_pcb_list.remove(pcb);
 
 	if (pcb != g_currentPCB)
 	{
