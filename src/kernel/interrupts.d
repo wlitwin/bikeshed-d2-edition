@@ -92,6 +92,11 @@ install_isr(int vector, isr_handler handler)
 	__isr_table[vector] = handler;
 }
 
+//=============================================================================
+// From here on the functions are private and apply only internally to this
+// module
+//=============================================================================
+
 private:
 
 template createIDTStubs(long howMany = 255)
