@@ -1,8 +1,8 @@
 module kernel.serial;
 
-import std.conv;
+import std.conv; // From phobos
 
-import core.vararg;
+import core.vararg; // From druntime
 import kernel.support;
 
 __gshared:
@@ -11,7 +11,8 @@ private:
 
 enum SERIAL_PORT_A = 0x3F8;
 
-public void init_serial_debug()
+public void 
+init_serial_debug()
 {
 	__outb(SERIAL_PORT_A + 1, 0x00);
 	__outb(SERIAL_PORT_A + 3, 0x80);
@@ -22,25 +23,23 @@ public void init_serial_debug()
 	__outb(SERIAL_PORT_A + 4, 0x08);
 }
 
-void serial_printf()
-{
-
-}
-
-int serial_transmit_empty()
+int 
+serial_transmit_empty()
 {
 	return __inb(SERIAL_PORT_A + 5) & 0x20;
 }
 
-void serial_char(char c)
+void 
+serial_char(char c)
 {
 	while (serial_transmit_empty() == 0) { }
 	__outb(SERIAL_PORT_A, c);
 }
 
-string hexdigits = "0123456789ABCDEF";
+immutable(string) hexdigits = "0123456789ABCDEF";
 
-int to_string_u(ulong val, ref char buffer[20], int index = 19)
+int 
+to_string_u(ulong val, ref char buffer[20], int index = 19)
 {
 	do
 	{
@@ -53,7 +52,8 @@ int to_string_u(ulong val, ref char buffer[20], int index = 19)
 	return index+1;
 }
 
-int to_string_i(long val, ref char buffer[21], int index = 20)
+int
+to_string_i(long val, ref char buffer[21], int index = 20)
 {
 	bool negative = val < 0;
 	if (negative)
@@ -78,7 +78,8 @@ int to_string_i(long val, ref char buffer[21], int index = 20)
 	return index+1;
 }
 
-void write_string(string s)
+void
+write_string(string s)
 {
 	foreach (c ; s)
 	{
@@ -86,7 +87,8 @@ void write_string(string s)
 	}
 }
 
-void write_string(char[] s)
+void
+write_string(char[] s)
 {
 	foreach (c ; s)
 	{
@@ -94,12 +96,14 @@ void write_string(char[] s)
 	}
 }
 
-public void serial_outln(S...)(S args)
+public void 
+serial_outln(S...)(S args)
 {
 	serial_out(args, '\n');
 }
 
-public void serial_out(...)
+public void 
+serial_out(...)
 {
 	// :S Not super happy about exceptions in the kernel!
 	// But it's localized, so I guess it's not that bad...
