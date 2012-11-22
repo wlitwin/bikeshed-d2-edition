@@ -16,6 +16,11 @@ uint RET(ProcessControlBlock* pcb)
 	return pcb.context.EAX;
 }
 
+uint* ARG(ProcessControlBlock* pcb)
+{
+	return cast(uint*)(pcb.context + 1);
+}
+
 enum Quantum : ubyte
 {
 	STANDARD = 10,
