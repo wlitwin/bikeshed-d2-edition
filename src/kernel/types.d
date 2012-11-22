@@ -1,5 +1,9 @@
 module kernel.types;
 
+__gshared:
+nothrow:
+public:
+
 enum Status : uint
 {
 	SUCCESS = 0,
