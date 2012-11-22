@@ -27,7 +27,6 @@ kmain()
 		put_string(0, 0, message);
 
 		init_serial_debug();
-
 		serial_outln("TESTING TESTING\n", 10, "\n", -10, "\n");
 		// Must be first
 		init_interrupts();
@@ -53,6 +52,7 @@ kmain()
 	int val1 = 0;
 	while (true)
 	{
+		// Verify that everything is still working
 		int val = 0x12345678;
 		val1 += 1;
 		asm
