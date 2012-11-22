@@ -7,6 +7,7 @@ import kernel.interrupts;
 
 __gshared:
 nothrow:
+
 uint system_time;
 
 int pin_wheel = 0;
@@ -25,7 +26,8 @@ enum TIMER_CONTROL_PORT = TIMER_BASE_PORT + 3;
 enum TIMER_FREQUENCY = 1193182;
 enum CLOCK_FREQUENCY = 1000;
 
-void init_clock()
+void 
+init_clock()
 {
 	serial_outln("\nClock: intializing");
 
@@ -43,7 +45,8 @@ void init_clock()
 }
 
 private extern (C)
-void isr_clock(int vector, int code)
+void 
+isr_clock(int vector, int code)
 {
 	//serial_outln("Timer interrupt");
 	++system_time;
