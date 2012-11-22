@@ -43,7 +43,7 @@ memset(void* ptr, int value, size_t num)
 }
 
 extern (C) void* 
-memcpy(void* destination, immutable(void*) source, size_t num)
+memcpy(void* destination, const void* source, size_t num)
 {
 	iubyte* bytePtrSrc  = cast(iubyte *)source;
 	ubyte*  bytePtrDest = cast(ubyte *)destination;
