@@ -44,6 +44,11 @@ nothrow:
 
 }
 
+public PageDirectory* clone_page_directory()
+{
+	return null;
+}
+
 public void switch_page_directory(PageDirectory* pd)
 {
 	asm
