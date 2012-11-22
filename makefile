@@ -67,4 +67,4 @@ kernel: clean bootloader fancycat clib
 	@echo
 
 qemu: kernel
-	qemu-system-i386 -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/3 -net user -net nic,model=i82559er -vga vmware
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/1 -net user -net nic,model=i82559er -vga vmware
