@@ -7,6 +7,7 @@ import kernel.support : panic;
 
 __gshared:
 nothrow:
+public:
 
 struct InterruptContext
 {
