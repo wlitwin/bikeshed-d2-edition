@@ -7,6 +7,7 @@ import kernel.memory.memory : PAGE_SIZE, MemoryInfo;
 import kernel.memory.iPhysicalAllocator;
 
 __gshared:
+nothrow:
 
 class BitmapAllocator : IPhysicalAllocator
 {
