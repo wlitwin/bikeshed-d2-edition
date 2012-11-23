@@ -36,7 +36,7 @@ SECTIONS {
 
 	.tbss ALIGN(4096) : {
 		tbss = .; _tbss = .; __tbss = .;
-		*(.tbss)
+		*(.tbss) /* Thread local storage stuff */
 		*(.tbss.*)
 		*(.gnu.linkonce.tb.*)
 		*(.tcommon)
@@ -48,9 +48,10 @@ SECTIONS {
 		*(COMMON)
 		*(.bss)
 		*(.bss.*)
-		*(.tbss) /* Thread local storage stuff */
+	/*	*(.tbss) 
 		*(.tbss.*)
 		*(.tcommon)
+		*/
 		ebss = .;
 	}
 	end = .; _end = .; __end = .;

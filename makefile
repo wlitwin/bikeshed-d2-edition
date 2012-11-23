@@ -4,8 +4,6 @@ C_FLAG=-Wall -Werror -Wextra -pedantic -std=gnu99
 DC=src/dlibrary/dmd/src/dmd
 D_FLAGS=-m32 -Isrc -release -w -wi -vtls
 
-SOURCES=src/kernel/kmain.d src/kernel/vga.d
-
 AS=as
 AS_FLAGS=--32 -n32
 
@@ -37,30 +35,29 @@ clib:
 
 kernel: clean bootloader fancycat clib
 	$(AS) $(AS_FLAGS) src/kernel/pre-kernel.S -o $(OBJ_DIR)/pre-kernel.o		
-	$(AS) $(AS_FLAGS) src/kernel/support.S -o $(OBJ_DIR)/support-asm.o
 	$(DC) $(D_FLAGS) -c src/kernel/kmain.d -Isrc -of$(OBJ_DIR)/kmain.o
-	$(DC) $(D_FLAGS) -c src/kernel/vga.d -of$(OBJ_DIR)/vga.o
-	$(DC) $(D_FLAGS) -c src/kernel/interrupts.d -of$(OBJ_DIR)/interrupts.o
-	$(DC) $(D_FLAGS) -c src/kernel/interrupt_defs.d -of$(OBJ_DIR)/interrupt_defs.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/memory.d -of$(OBJ_DIR)/memory.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/iPhysicalAllocator.d -of$(OBJ_DIR)/iPhysicalAllocator.o
-	$(DC) $(D_FLAGS) -c src/kernel/clock.d -of$(OBJ_DIR)/clock.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/basicVirtualAllocator.d -of$(OBJ_DIR)/basicVirtualAllocator.o
-	$(DC) $(D_FLAGS) -c src/kernel/templates.d -of$(OBJ_DIR)/templates.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/iVirtualAllocator.d -of$(OBJ_DIR)/iVirtualAllocator.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/bitmapAllocator.d -of$(OBJ_DIR)/bitmapAllocator.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/util.d -of$(OBJ_DIR)/util.o
-	$(DC) $(D_FLAGS) -c src/kernel/support.d -of$(OBJ_DIR)/support.o
-	$(DC) $(D_FLAGS) -c src/kernel/serial.d -of$(OBJ_DIR)/serial.o
-	$(DC) $(D_FLAGS) -c src/kernel/memory/malloc.d -of$(OBJ_DIR)/kmalloc.o
-	$(DC) $(D_FLAGS) -c src/kernel/linkedlist.d -of$(OBJ_DIR)/linkedlist.o
-	$(DC) $(D_FLAGS) -c src/kernel/process/pcb.d -of$(OBJ_DIR)/pcb.o
-	$(DC) $(D_FLAGS) -c src/kernel/process/scheduler.d -of$(OBJ_DIR)/scheduler.o
-	$(DC) $(D_FLAGS) -c src/kernel/syscall/syscalls.d -of$(OBJ_DIR)/syscalls.o
+	$(AS) $(AS_FLAGS) src/kernel/layer0/support.S -o $(OBJ_DIR)/support-asm.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/vga.d -of$(OBJ_DIR)/vga.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/interrupts.d -of$(OBJ_DIR)/interrupts.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/memory.d -of$(OBJ_DIR)/memory.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/iPhysicalAllocator.d -of$(OBJ_DIR)/iPhysicalAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/basicVirtualAllocator.d -of$(OBJ_DIR)/basicVirtualAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/templates.d -of$(OBJ_DIR)/templates.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/iVirtualAllocator.d -of$(OBJ_DIR)/iVirtualAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/bitmapAllocator.d -of$(OBJ_DIR)/bitmapAllocator.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/util.d -of$(OBJ_DIR)/util.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/support.d -of$(OBJ_DIR)/support.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/serial.d -of$(OBJ_DIR)/serial.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer0/memory/malloc.d -of$(OBJ_DIR)/kmalloc.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer1/clock.d -of$(OBJ_DIR)/clock.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer1/linkedlist.d -of$(OBJ_DIR)/linkedlist.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer1/process/pcb.d -of$(OBJ_DIR)/pcb.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer1/process/scheduler.d -of$(OBJ_DIR)/scheduler.o
+	$(DC) $(D_FLAGS) -c src/kernel/layer1/syscall/syscalls.d -of$(OBJ_DIR)/syscalls.o
 	@echo
 	
-	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o linkedlist.o pcb.o scheduler.o syscalls.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
-	cd $(OBJ_DIR); $(LD) -m elf_i386 --gc-sections -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o interrupt_defs.o kmalloc.o linkedlist.o pcb.o scheduler.o syscalls.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.o
+	cd $(OBJ_DIR); $(LD) $(LD_FLAGS) -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o kmalloc.o linkedlist.o pcb.o scheduler.o syscalls.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.b
+	cd $(OBJ_DIR); $(LD) -m elf_i386 --gc-sections -T../src/linker_scripts/kernel.ld pre-kernel.o kmain.o stdlib.o vga.o memory.o interrupts.o serial.o support-asm.o support.o iPhysicalAllocator.o bitmapAllocator.o iVirtualAllocator.o basicVirtualAllocator.o util.o clock.o templates.o kmalloc.o linkedlist.o pcb.o scheduler.o syscalls.o ../$(LIBRARIES) -o ../$(OUTPUT_DIR)/kernel.o
 	$(OUTPUT_DIR)/FancyCat 0x100000 $(OUTPUT_DIR)/kernel.b
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
