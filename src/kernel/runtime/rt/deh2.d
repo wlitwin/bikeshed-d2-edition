@@ -12,14 +12,7 @@
 
 module rt.deh2;
 
-version (Posix)
-{
-    version = deh2;
-}
-else version (Win64)
-{
-    version = deh2;
-}
+version = deh2;
 
 // Use deh.d for Win32
 
@@ -31,22 +24,14 @@ debug import core.stdc.stdio : printf;
 
 extern (C)
 {
-    version (OSX)
-    {
-        // Set by rt.memory_osx.onAddImage()
-        __gshared ubyte[] _deh_eh_array;
-    }
-    else
-    {
-        extern __gshared
-        {
-            /* Symbols created by the compiler and inserted into the object file
-             * that 'bracket' the __deh_eh segment
-             */
-            void* _deh_beg;
-            void* _deh_end;
-        }
-    }
+	extern __gshared
+	{
+		/* Symbols created by the compiler and inserted into the object file
+		 * that 'bracket' the __deh_eh segment
+		 */
+		void* _deh_beg;
+		void* _deh_end;
+	}
 
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
 
@@ -133,16 +118,9 @@ FuncTable *__eh_finddata(void *address)
     debug printf("FuncTable.sizeof = %p\n", FuncTable.sizeof);
     debug printf("__eh_finddata(address = %p)\n", address);
 
-    version (OSX)
-    {
-        auto pstart = cast(FuncTable *)_deh_eh_array.ptr;
-        auto pend   = cast(FuncTable *)(_deh_eh_array.ptr + _deh_eh_array.length);
-    }
-    else
-    {
-        auto pstart = cast(FuncTable *)&_deh_beg;
-        auto pend   = cast(FuncTable *)&_deh_end;
-    }
+	auto pstart = cast(FuncTable *)&_deh_beg;
+	auto pend   = cast(FuncTable *)&_deh_end;
+
     debug printf("_deh_beg = %p, _deh_end = %p\n", pstart, pend);
 
     for (auto ft = pstart; 1; ft++)
@@ -168,17 +146,6 @@ FuncTable *__eh_finddata(void *address)
               ft, ft.fptr, ft.handlertable, ft.fsize);
 
         void *fptr = ft.fptr;
-        version (Win64)
-        {
-            /* If linked with /DEBUG, the linker rewrites it so the function pointer points
-             * to a JMP to the actual code. The address will be in the actual code, so we
-             * need to follow the JMP.
-             */
-            if ((cast(ubyte*)fptr)[0] == 0xE9)
-            {   // JMP target = RIP of next instruction + signed 32 bit displacement
-                fptr = fptr + 5 + *cast(int*)(fptr + 1);
-            }
-        }
 
         if (fptr <= address &&
             address < cast(void *)(cast(char *)fptr + ft.fsize))

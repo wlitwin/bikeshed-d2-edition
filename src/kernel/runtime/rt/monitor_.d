@@ -19,42 +19,13 @@ private
 {
     import core.stdc.stdlib;
 
-    version( linux )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( FreeBSD )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( OSX )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( Solaris )
-    {
-        version = USE_PTHREADS;
-    }
+	version = USE_PTHREADS;
 
     // This is what the monitor reference in Object points to
     alias Object.Monitor        IMonitor;
     alias void delegate(Object) DEvent;
 
-    version( Windows )
-    {
-        version (Win32)
-            pragma(lib, "snn.lib");
-        import core.sys.windows.windows;
-
-        struct Monitor
-        {
-            IMonitor impl; // for user-level monitors
-            DEvent[] devt; // for internal monitors
-            size_t   refs; // reference count
-            CRITICAL_SECTION mon;
-        }
-    }
-    else version( USE_PTHREADS )
+    version( USE_PTHREADS )
     {
         import core.sys.posix.pthread;
 
@@ -82,90 +53,6 @@ private
     }
 
     static __gshared int inited;
-}
-
-
-/* =============================== Win32 ============================ */
-
-version( Windows )
-{
-    static __gshared CRITICAL_SECTION _monitor_critsec;
-
-    extern (C) void _STI_monitor_staticctor()
-    {
-        debug(PRINTF) printf("+_STI_monitor_staticctor()\n");
-        if (!inited)
-        {
-            InitializeCriticalSection(&_monitor_critsec);
-            inited = 1;
-        }
-        debug(PRINTF) printf("-_STI_monitor_staticctor()\n");
-    }
-
-    extern (C) void _STD_monitor_staticdtor()
-    {
-        debug(PRINTF) printf("+_STI_monitor_staticdtor() - d\n");
-        if (inited)
-        {
-            inited = 0;
-            DeleteCriticalSection(&_monitor_critsec);
-        }
-        debug(PRINTF) printf("-_STI_monitor_staticdtor() - d\n");
-    }
-
-    extern (C) void _d_monitor_create(Object h)
-    {
-        /*
-         * NOTE: Assume this is only called when h.__monitor is null prior to the
-         * call.  However, please note that another thread may call this function
-         * at the same time, so we can not assert this here.  Instead, try and
-         * create a lock, and if one already exists then forget about it.
-         */
-
-        debug(PRINTF) printf("+_d_monitor_create(%p)\n", h);
-        assert(h);
-        Monitor *cs;
-        EnterCriticalSection(&_monitor_critsec);
-        if (!h.__monitor)
-        {
-            cs = cast(Monitor *)calloc(Monitor.sizeof, 1);
-            assert(cs);
-            InitializeCriticalSection(&cs.mon);
-            setMonitor(h, cs);
-            cs.refs = 1;
-            cs = null;
-        }
-        LeaveCriticalSection(&_monitor_critsec);
-        if (cs)
-            free(cs);
-        debug(PRINTF) printf("-_d_monitor_create(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_destroy(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_destroy(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        DeleteCriticalSection(&getMonitor(h).mon);
-        free(h.__monitor);
-        setMonitor(h, null);
-        debug(PRINTF) printf("-_d_monitor_destroy(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_lock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_acquire(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        EnterCriticalSection(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_acquire(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_unlock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_release(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        LeaveCriticalSection(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
-    }
 }
 
 /* =============================== linux ============================ */

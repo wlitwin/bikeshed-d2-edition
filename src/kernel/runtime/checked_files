@@ -1,0 +1,9 @@
+rt/alloca.d
+rt/aApply.d
+rt/arraycast.d
+rt/cast_.d
+rt/cmath2.d - Needs 'fabs()' implementation
+rt/deh2.d
+rt/memset.d
+rt/minfo.d
+

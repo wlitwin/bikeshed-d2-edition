@@ -149,8 +149,7 @@ extern (C) void rt_moduleTlsDtor()
 extern (C) void rt_moduleDtor()
 {
     _moduleGroup.runDtors();
-    version (Posix)
-        .free(_moduleGroup._modules.ptr);
+    .free(_moduleGroup._modules.ptr);
     _moduleGroup.free();
 }
 
@@ -186,73 +185,19 @@ body
 {
     typeof(return) result = void;
 
-    version (OSX)
-    {
-        // _moduleinfo_array is set by src.rt.memory_osx.onAddImage()
-        // but we need to throw out any null pointers
-        auto p = _moduleinfo_array.ptr;
-        auto pend = _moduleinfo_array.ptr + _moduleinfo_array.length;
-
-        // count non-null pointers
-        size_t cnt;
-        for (; p < pend; ++p)
-            if (*p !is null) ++cnt;
-
-        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
-
-        p = _moduleinfo_array.ptr;
-        cnt = 0;
-        for (; p < pend; ++p)
-            if (*p !is null) result[cnt++] = *p;
-    }
     // all other Posix variants (FreeBSD, Solaris, Linux)
-    else version (Posix)
-    {
-        size_t len;
-        ModuleReference *mr;
+    //version (Posix)
+	size_t len;
+	ModuleReference *mr;
 
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-            len++;
-        result = (cast(ModuleInfo**).malloc(len * size_t.sizeof))[0 .. len];
-        len = 0;
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-        {   result[len] = mr.mod;
-            len++;
-        }
-    }
-    else version (Win32)
-    {
-        // _minit directly alters the global _moduleinfo_array
-        _minit();
-        result = _moduleinfo_array;
-    }
-    else version (Win64)
-    {
-        auto m = (cast(ModuleInfo**)&_minfo_beg)[1 .. &_minfo_end - &_minfo_beg];
-        /* Because of alignment inserted by the linker, various null pointers
-         * are there. We need to filter them out.
-         */
-        auto p = m.ptr;
-        auto pend = m.ptr + m.length;
-
-        // count non-null pointers
-        size_t cnt;
-        for (; p < pend; ++p)
-        {
-            if (*p !is null) ++cnt;
-        }
-
-        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
-
-        p = m.ptr;
-        cnt = 0;
-        for (; p < pend; ++p)
-            if (*p !is null) result[cnt++] = *p;
-    }
-    else
-    {
-        static assert(0);
-    }
+	for (mr = _Dmodule_ref; mr; mr = mr.next)
+		len++;
+	result = (cast(ModuleInfo**).malloc(len * size_t.sizeof))[0 .. len];
+	len = 0;
+	for (mr = _Dmodule_ref; mr; mr = mr.next)
+	{   result[len] = mr.mod;
+		len++;
+	}
     return result;
 }
 
@@ -326,10 +271,7 @@ void print(string m)
 void println(string m)
 {
     print(m);
-    version (Windows)
-        print("\r\n");
-    else
-        print("\n");
+    print("\n");
 }
 
 struct StackRec
@@ -345,14 +287,6 @@ struct StackRec
 
 void onCycleError(StackRec[] stack)
 {
-	/+
-    version (unittest)
-    {
-        if (_inUnitTest)
-            goto Lerror;
-    }
-	+/
-
     println("Cycle detected between modules with ctors/dtors:");
     foreach (e; stack)
     {

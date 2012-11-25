@@ -1450,16 +1450,16 @@ extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
     return traceHandler(ptr);
 }
 
-    extern (C) void _d_createTrace(Object *o)
-    {
-        auto t = cast(Throwable) o;
+extern (C) void _d_createTrace(Object *o)
+{
+	auto t = cast(Throwable) o;
 
-        if (t !is null && t.info is null &&
-            cast(byte*) t !is t.classinfo.init.ptr)
-        {
-            t.info = _d_traceContext();
-        }
-    }
+	if (t !is null && t.info is null &&
+			cast(byte*) t !is t.classinfo.init.ptr)
+	{
+		t.info = _d_traceContext();
+	}
+}
 
 /**
  * The base class of all errors that are safe to catch and handle.
