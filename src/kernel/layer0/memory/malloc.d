@@ -48,7 +48,7 @@ public void* calloc(uint size)
 extern (C)
 public void* realloc(void* ptr, size_t size)
 {
-	return null;
+	return krealloc(ptr, size);
 }
 
 extern (C)
@@ -168,6 +168,24 @@ public void* kmalloc(uint size)
 
 	serial_outln("Allocating: ", addr);
 	return addr;
+}
+
+public void* krealloc(void* old_ptr, uint size)
+{
+	// Do the simplest implementation for now
+	void* ptr = kmalloc(size);
+	if (ptr == null)
+	{
+		return null;
+	}
+
+	// Get the old pointers size, which lives
+	// just above the old pointer
+	uint old_size = *(cast(uint*)old_ptr - 1);
+
+	memcpy(ptr, old_ptr, old_size);
+
+	return ptr;
 }
 
 public void* kcalloc(uint size)
