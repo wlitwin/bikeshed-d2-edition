@@ -74,7 +74,6 @@ extern (C) void* __alloca(int nbytes)
         jbe     Aoverflow       ; // Unlikely - ~2 Gbytes under UNIX
     }
     }
-
     asm
     {
         // Copy down to [ESP] the temps on the stack.
@@ -102,6 +101,62 @@ extern (C) void* __alloca(int nbytes)
         pop     EDI             ;
         pop     EBX             ;
         ret                     ;
+    }
+  }
+  else version (D_InlineAsm_X86_64)
+  {
+    asm
+    {
+        /* Parameter is passed in RDI
+         * Must save registers RBX,R12..R15
+         */
+        naked                   ;
+        mov     RDX,RCX         ;
+        mov     RAX,RDI         ; // get nbytes
+        add     RAX,15          ;
+        and     AL,0xF0         ; // round up to 16 byte boundary
+        test    RAX,RAX         ;
+        jnz     Abegin          ;
+        mov     RAX,16          ; // allow zero bytes allocation
+    Abegin:
+        mov     RSI,RAX         ; // RSI = nbytes
+        neg     RAX             ;
+        add     RAX,RSP         ; // RAX is now what the new RSP will be.
+        jae     Aoverflow       ;
+    }
+
+    version (Unix)
+    {
+    asm
+    {
+        cmp     RAX,_pastdata   ;
+        jbe     Aoverflow       ; // Unlikely - ~2 Gbytes under UNIX
+    }
+    }
+    asm
+    {
+        // Copy down to [RSP] the temps on the stack.
+        // The number of temps is (RBP - RSP - locals).
+        mov     RCX,RBP         ;
+        sub     RCX,RSP         ;
+        sub     RCX,[RDX]       ; // RCX = number of temps (bytes) to move.
+        add     [RDX],RSI       ; // adjust locals by nbytes for next call to alloca()
+        mov     RSP,RAX         ; // Set up new stack pointer.
+        add     RAX,RCX         ; // Return value = RSP + temps.
+        mov     RDI,RSP         ; // Destination of copy of temps.
+        add     RSI,RSP         ; // Source of copy.
+        shr     RCX,3           ; // RCX to count of qwords in temps
+        rep                     ;
+        movsq                   ;
+        jmp     done            ;
+
+    Aoverflow:
+        // Overflowed the stack.  Return null
+        xor     RAX,RAX         ;
+
+    done:
+        ret                     ;
+    }
     }
   }
   else
