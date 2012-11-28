@@ -131,9 +131,15 @@ version( DigitalMars )//DigitalMarsWin32 )
         FP_FAST_FMAL = 0,
     }
 
-    uint __fpclassify_f(float x);
+	// TODO replace with actual definition
+    /+uint __fpclassify_f(float x);
     uint __fpclassify_d(double x);
     uint __fpclassify_ld(real x);
+	+/
+
+    uint __fpclassify_f(float x)  { return 0; }
+    uint __fpclassify_d(double x) { return 0; }
+    uint __fpclassify_ld(real x)  { return 0; }
 
   extern (D)
   {
