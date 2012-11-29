@@ -14,12 +14,6 @@ module rt.deh2;
 
 version = deh2;
 
-// Use deh.d for Win32
-
-version (deh2)
-{
-
-//debug=1;
 debug import core.stdc.stdio : printf;
 
 extern (C)
@@ -129,19 +123,6 @@ FuncTable *__eh_finddata(void *address)
         if (ft >= pend)
             break;
 
-        version (Win64)
-        {
-            /* The MS Linker has an inexplicable and erratic tendency to insert
-             * 8 zero bytes between sections generated from different .obj
-             * files. This kludge tries to skip over them.
-             */
-            if (ft.fptr == null)
-            {
-                ft = cast(FuncTable *)(cast(void**)ft + 1);
-                goto Lagain;
-            }
-        }
-
         debug printf("  ft = %p, fptr = %p, handlertable = %p, fsize = x%03x\n",
               ft, ft.fptr, ft.handlertable, ft.fsize);
 
@@ -242,17 +223,7 @@ extern (C) void _d_throwc(Object *h)
             continue;
         }
         auto funcoffset = cast(size_t)func_table.fptr;
-        version (Win64)
-        {
-            /* If linked with /DEBUG, the linker rewrites it so the function pointer points
-             * to a JMP to the actual code. The address will be in the actual code, so we
-             * need to follow the JMP.
-             */
-            if ((cast(ubyte*)funcoffset)[0] == 0xE9)
-            {   // JMP target = RIP of next instruction + signed 32 bit displacement
-                funcoffset = funcoffset + 5 + *cast(int*)(funcoffset + 1);
-            }
-        }
+
         auto spoff = handler_table.espoffset;
         auto retoffset = handler_table.retoffset;
 
@@ -398,66 +369,32 @@ extern (C) void _d_throwc(Object *h)
                 inflight.t    = cast(Throwable) h;
                 __inflight    = &inflight;
 
-                version (OSX)
-                {
-                    version (D_InlineAsm_X86)
-                        asm
-                        {
-                            sub     ESP,4           ;
-                            push    EBX             ;
-                            mov     EBX,blockaddr   ;
-                            push    EBP             ;
-                            mov     EBP,regebp      ;
-                            call    EBX             ;
-                            pop     EBP             ;
-                            pop     EBX             ;
-                            add     ESP,4           ;
-                        }
-                    else version (D_InlineAsm_X86_64)
-                        asm
-                        {
-                            sub     RSP,8           ;
-                            push    RBX             ;
-                            mov     RBX,blockaddr   ;
-                            push    RBP             ;
-                            mov     RBP,regebp      ;
-                            call    RBX             ;
-                            pop     RBP             ;
-                            pop     RBX             ;
-                            add     RSP,8           ;
-                        }
-                    else
-                        static assert(0);
-                }
-                else
-                {
-                    version (D_InlineAsm_X86)
-                        asm
-                        {
-                            push    EBX             ;
-                            mov     EBX,blockaddr   ;
-                            push    EBP             ;
-                            mov     EBP,regebp      ;
-                            call    EBX             ;
-                            pop     EBP             ;
-                            pop     EBX             ;
-                        }
-                    else version (D_InlineAsm_X86_64)
-                        asm
-                        {
-                            sub     RSP,8           ;
-                            push    RBX             ;
-                            mov     RBX,blockaddr   ;
-                            push    RBP             ;
-                            mov     RBP,regebp      ;
-                            call    RBX             ;
-                            pop     RBP             ;
-                            pop     RBX             ;
-                            add     RSP,8           ;
-                        }
-                    else
-                        static assert(0);
-                }
+				version (D_InlineAsm_X86)
+					asm
+					{
+						push    EBX             ;
+						mov     EBX,blockaddr   ;
+						push    EBP             ;
+						mov     EBP,regebp      ;
+						call    EBX             ;
+						pop     EBP             ;
+						pop     EBX             ;
+					}
+				else version (D_InlineAsm_X86_64)
+					asm
+					{
+						sub     RSP,8           ;
+						push    RBX             ;
+						mov     RBX,blockaddr   ;
+						push    RBP             ;
+						mov     RBP,regebp      ;
+						call    RBX             ;
+						pop     RBP             ;
+						pop     RBX             ;
+						add     RSP,8           ;
+					}
+				else
+					static assert(0);
 
                 if (__inflight is &inflight)
                     __inflight = __inflight.next;
@@ -467,4 +404,3 @@ extern (C) void _d_throwc(Object *h)
     terminate();
 }
 
-}
