@@ -3,16 +3,6 @@ nothrow:
 
 alias immutable(ubyte) iubyte;
 
-private uint m_z = 0x12345678;
-private uint m_w = 0xC001C0DE;
-uint krand()
-{
-	m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-	m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-
-	return (m_z << 16) + m_w;
-}
-
 extern (C) void
 memclr(void* ptr, size_t size)
 {
@@ -55,4 +45,73 @@ memcpy(void* destination, const void* source, size_t num)
 	}
 
 	return destination;
+}
+
+extern (C) int 
+memcmp(const void* ptr1, const void* ptr2, size_t num)
+{
+	iubyte* ptrA = cast(iubyte *)ptr1;
+	iubyte* ptrB = cast(iubyte *)ptr2;
+
+	while (num > 0)
+	{
+		if (*ptrA != *ptrB) 
+		{
+			return *ptrA - *ptrB;		
+		}
+
+		++ptrA;
+		++ptrB;
+		--num;
+	}
+
+	return 0;
+}
+
+extern (C) void*
+memmove(void* destination, const void* source, size_t num)
+{
+	ubyte* dest = cast(ubyte *)destination;
+	ubyte* src  = cast(ubyte *)source;
+
+	while(num > 0)
+	{
+		*dest = *src;
+		++dest;
+		++src;
+		--num;
+	}
+
+	return dest;
+}
+
+extern (C) void*
+memchr(const void* ptr, int value, size_t num)
+{
+	ubyte* srch = cast(ubyte *)ptr;
+	ubyte val = cast(ubyte)value;
+	while (num > 0)
+	{
+		if (*srch == val)
+			return srch;
+
+		++srch;
+		--num;
+	}
+
+	return null;
+}
+
+
+extern (C) size_t 
+strlen(immutable(char)* str)
+{
+	size_t length = 0;
+	while (*str != 0)
+	{
+		++length;
+		++str;
+	}
+
+	return length;
 }
