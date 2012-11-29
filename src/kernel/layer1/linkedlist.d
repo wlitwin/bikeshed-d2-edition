@@ -78,7 +78,7 @@ nothrow:
 		return true;
 	}
 
-	bool remove(const ref T val)
+	bool remove(ref in T val)
 	{
 		if (empty())
 		{
@@ -101,7 +101,7 @@ nothrow:
 		return false;
 	}
 
-	bool find(S)(const ref S compare_obj, out T found)
+	bool find(S)(ref in S compare_obj, out T found)
 	{
 		LinkedNode!(T)* node = head;
 		while (node != null)
