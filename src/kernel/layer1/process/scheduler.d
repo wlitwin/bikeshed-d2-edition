@@ -1,12 +1,13 @@
 module kernel.process.scheduler;
 
 import kernel.layer0.types;
-import kernel.layer1.process.pcb;
-import kernel.layer1.linkedlist;
 import kernel.layer0.serial;
 import kernel.layer0.support;
 import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.iVirtualAllocator : switch_page_directory;
+
+import kernel.layer1.process.pcb;
+import kernel.layer1.linkedlist;
 
 __gshared:
 nothrow:
