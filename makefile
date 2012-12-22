@@ -2,7 +2,7 @@ CC=gcc
 C_FLAGS=-Wall -Werror -Wextra -pedantic -std=gnu99
 
 DC=src/dlibrary/dmd/src/dmd
-D_FLAGS=-m32 -release -Isrc -w -wi -vtls -nofloat
+D_FLAGS=-m32 -release -Isrc -w -wi -vtls -nofloat -v
 
 AS=as
 AS_FLAGS=--32 -n32
@@ -13,6 +13,9 @@ LD_FLAGS_DBG=-m elf_i386 --gc-sections
 
 OUTPUT_DIR=output
 OBJ_DIR=obj
+
+# Filled in by debug rule
+DBG=
 
 KERNEL_OBJECTS=$(shell find src/kernel/ -name '*.[dS]' | sed -e 's/^\(.*\.[dS]\)$$/obj\/\1.o/g')
 # Filtered out in the linker, this must go first in order to boot the kernel
@@ -38,10 +41,15 @@ $(OUTPUT_DIR)/FancyCat:
 
 # TODO Separate the runtime compilation from the kernels compilation
 obj/%.d.o : %.d
-	$(DC) $(D_FLAGS) -Isrc/kernel/runtime -c $^ -of$@
+	$(DBG) $(DC) $(D_FLAGS) -Isrc/kernel/runtime -c $^ -of$@
 
 obj/%.S.o : %.S
 	$(AS) $(AS_FLAGS) $^ -o $@
+
+.PHONY: kernel debug
+debug: DBG+=gdb --args	
+
+debug: kernel
 
 kernel: bootloader fancycat $(KERNEL_OBJECTS)
 	$(LD) $(LD_FLAGS) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
