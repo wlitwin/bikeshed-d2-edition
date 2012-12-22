@@ -15,7 +15,7 @@ private:
 
 public ProcessControlBlock* g_currentPCB;
 
-private enum NUMBER_OF_READY_QUEUES = Priority.max + 1;
+private enum NUMBER_OF_READY_QUEUES = Priority.max + 1; // The count starts at 0
 private alias LinkedList!(ProcessControlBlock*) ReadyQueue;
 private ReadyQueue[NUMBER_OF_READY_QUEUES] g_ready_queues;
 
