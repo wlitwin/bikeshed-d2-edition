@@ -2,7 +2,7 @@ CC=gcc
 C_FLAGS=-Wall -Werror -Wextra -pedantic -std=gnu99
 
 DC=src/dlibrary/dmd/src/dmd
-D_FLAGS=-m32 -release -Isrc -w -wi -vtls -nofloat -v
+D_FLAGS=-m32 -gc -Isrc -w -wi -vtls -nofloat
 
 AS=as
 AS_FLAGS=--32 -n32
@@ -64,4 +64,4 @@ kernel: bootloader fancycat $(KERNEL_OBJECTS)
 emu: kernel qemu
 
 qemu: 
-	qemu-system-i386 -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/2 -net user -net nic,model=i82559er -vga vmware
+	qemu-system-i386 -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/2 -net user -net nic,model=i82559er -vnc :0
