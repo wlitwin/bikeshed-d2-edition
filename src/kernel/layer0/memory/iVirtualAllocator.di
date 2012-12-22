@@ -34,11 +34,13 @@ struct PageDirectory
 	}
 }
 
+extern (D)
+{
+	void initialize(ref MemoryInfo info);
 
-void initialize(ref MemoryInfo info);
-
-void map_page(virt_addr address, uint permissions);
-void unmap_page(virt_addr address);
+	void map_page(virt_addr address, uint permissions);
+	void unmap_page(virt_addr address);
+}
 
 public PageDirectory* clone_page_directory()
 {
