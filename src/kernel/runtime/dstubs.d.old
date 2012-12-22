@@ -1,0 +1,80 @@
+extern (C)
+{
+private:
+
+	struct Array
+	{
+		size_t length;
+		byte* data;
+	}
+
+	struct aaA
+	{
+		aaA* left;
+		aaA* right;
+		hash_t hash;
+		/* Key */
+		/* Value */
+	}
+
+	struct BB
+	{
+		aaA*[] b;
+		size_t nodes;
+	}
+
+	struct AA
+	{
+		BB* a;
+	}
+
+	alias long ArrayRet_t;
+	extern(D) alias int delegate(void *) aa_dg_t;
+	extern(D) alias int delegate(void *, void *) aa_dg2_t;
+	extern(D) alias int delegate(void *) array_dt_t;
+	extern(D) alias int delegate(void *, void *) array_dg2_t;
+
+	enum BlkAttr : uint
+	{
+		FINALIZE = 0b0000_0001,
+		NO_SCAN  = 0b0000_0010,
+		NO_MOVE  = 0b0000_0100,
+		ALL_BITS = 0b1111_1111,
+	}
+
+	template Stub(char[] signature)
+	{
+		const char[] Stub = signature ~ " { assert(false, \"Undefined runtime stub executed: " ~ signature ~ "\"); }";
+	}
+
+}
+
+mixin(Stub!("void abort()"));
+mixin(Stub!("bool rt_isHalting()"));
+mixin(Stub!("bool runModuleUnitTests()"));
+mixin(Stub!("void _d_monitordelete(Object h, bool det = true)"));
+
+/**
+ * Given a pointer;
+ *     If it is an Object, return that Object
+ *     If it is an Interface, return the Object implementing that interface
+ *     If it is null, return null
+ *     Else, undefined crash
+ */
+
+Object _d_toObject(void* p)
+{
+	Object o;
+
+	if (p)
+	{
+		o = cast(Object)p;
+		ClassInfo oc = o.classinfo;
+		Interface* pi = **cast(Interface ***)p;
+
+		/* Interface.offset lines up with ClassInfo.name.ptr
+		 * so we rely on pointers never being less than 64k
+		 * and Objects never being greater
+		 */
+	}
+}
