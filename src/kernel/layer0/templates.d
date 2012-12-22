@@ -1,5 +1,5 @@
 // This file is full of CTFE templates
-
+module kernel.layer0.templates;
 
 /**
  ******************************************************************************
