@@ -99,11 +99,52 @@ serial_outln(S...)(S args)
 	serial_out(args, '\n');
 }
 
+public void
+serial_out(S...)(S args)
+{
+	foreach (arg; args)
+	{
+		alias typeof(arg) A;
+		static if (isAggregateType!A || is(A == enum))
+		{
+			// Do something
+			write_string("aggregate...");
+		}
+		else static if (isSomeString!A 
+						|| is(A == string)
+						|| is(A == dstring) 
+						|| is(A == wstring))
+		{
+			write_string(arg);
+		}
+		else static if (isIntegral!A)
+		{
+			char buffer[21];
+			for (int j = to_string_i(arg, buffer); j < 21; ++j)
+			{
+				serial_char(buffer[j]);
+			}
+		}
+		else static if (isBoolean!A)
+		{
+			write_string(arg ? "true" : "false");			
+		}
+		else static if (isSomeChar!A)
+		{
+			serial_char(arg);
+		}
+		else
+		{
+			// Do something
+			write_string("something else");
+		}
+	}
+}
+
+/*
 public void 
 serial_out(...)
 {
-	// :S Not super happy about exceptions in the kernel!
-	// But it's localized, so I guess it's not that bad...
 	for (int i = 0; i < _arguments.length; ++i)
 	{
 		if (_arguments[i] == typeid(string))
@@ -158,4 +199,4 @@ serial_out(...)
 		}
 	}
 }
-
+*/
