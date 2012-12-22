@@ -17,7 +17,7 @@ OBJ_DIR=obj
 # Filled in by debug rule
 DBG=
 
-KERNEL_OBJECTS=$(shell find src/kernel/ -name '*.[dS]' | sed -e 's/^\(.*\.[dS]\)$$/obj\/\1.o/g')
+KERNEL_OBJECTS=$(shell find src/kernel/ -name '*.[dS]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[dS]\)$$/obj\/\1.o/g')
 # Filtered out in the linker, this must go first in order to boot the kernel
 PRE_KERNEL = obj/src/kernel/pre-kernel.S.o
 
@@ -41,6 +41,9 @@ $(OUTPUT_DIR)/FancyCat:
 
 # TODO Separate the runtime compilation from the kernels compilation
 obj/%.d.o : %.d
+	$(DBG) $(DC) $(D_FLAGS) -Isrc/kernel/runtime -c $^ -of$@
+
+obj/%.di.o : %.di
 	$(DBG) $(DC) $(D_FLAGS) -Isrc/kernel/runtime -c $^ -of$@
 
 obj/%.S.o : %.S
