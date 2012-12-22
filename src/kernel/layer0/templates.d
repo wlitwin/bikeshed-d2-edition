@@ -1,6 +1,8 @@
 // This file is full of CTFE templates
 module kernel.layer0.templates;
 
+public import kernel.layer0.template_impl.traits;
+
 /**
  ******************************************************************************
  * STOLEN FROM THE OFFICIAL DRUNTIME
