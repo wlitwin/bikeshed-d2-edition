@@ -1,6 +1,6 @@
 module object;
 
-import declares;
+import glue;
 import utils.hash;
 import utils.string;
 import utils.minfo;

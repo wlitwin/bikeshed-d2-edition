@@ -1,6 +1,6 @@
 module arrays;
 
-import declares;
+import glue;
 
 /**
  * Append y[] to array x[]

@@ -1,6 +1,6 @@
 module array_eq;
 
-import declares;
+import glue;
 
 /***************************************
  * Support for array equality test.

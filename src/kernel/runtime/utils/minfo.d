@@ -1,6 +1,6 @@
 module utils.minfo;
 
-import declares;
+import glue;
 
 extern(C) __gshared ModuleReference* _Dmodule_ref;
 

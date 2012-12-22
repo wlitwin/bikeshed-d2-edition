@@ -1,6 +1,6 @@
 module utils.string;
 
-import declares;
+import glue;
 
 pure:
 nothrow:

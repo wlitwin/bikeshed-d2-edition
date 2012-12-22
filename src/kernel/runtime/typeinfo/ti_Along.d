@@ -13,7 +13,7 @@
  */
 module typeinfo.ti_Along;
 
-private import declares;
+private import glue;
 private import utils.string;
 private import utils.hash;
 

@@ -8,7 +8,7 @@
  *                      -1 if not in table
  */
 
-import declares;
+import glue;
 
 
 extern (C):
