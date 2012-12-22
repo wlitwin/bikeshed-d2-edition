@@ -34,6 +34,7 @@ panic(S...)(S args)
 	serial_outln(args);
 	asm
 	{
+		mov EAX, 0xBADC0DE;	
 		cli;
 		hlt;
 	}
