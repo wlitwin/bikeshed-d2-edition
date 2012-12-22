@@ -1,8 +1,10 @@
 module kernel.layer0.memory.malloc;
 
-import kernel.layer0.memory.memory : PAGE_SIZE, g_virtualAllocator;
+import kernel.layer0.memory.memory : PAGE_SIZE;
+import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
 import kernel.layer0.memory.util;
-import kernel.layer0.memory.iVirtualAllocator;
+import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
+import kernel.layer0.memory.iVirtualAllocator : virt_addr, PG_READ_WRITE, PG_PRESENT;
 import kernel.layer0.support;
 
 __gshared:
@@ -65,7 +67,7 @@ public void malloc_initialize()
 	void* start_address = kernel_heap.start_address;
 	for (uint i = 0; i < HEAP_INITIAL_PAGES; ++i)
 	{
-		g_virtualAllocator.map_page(cast(virt_addr) start_address, PG_READ_WRITE | PG_PRESENT);
+		virtAllocator.map_page(cast(virt_addr) start_address, PG_READ_WRITE | PG_PRESENT);
 		start_address += PAGE_SIZE;
 	}
 

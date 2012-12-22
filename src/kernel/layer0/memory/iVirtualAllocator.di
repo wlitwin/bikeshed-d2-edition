@@ -5,6 +5,7 @@ import kernel.layer0.memory.iPhysicalAllocator;
 
 __gshared:
 nothrow:
+public:
 
 alias uint virt_addr;
 
@@ -33,16 +34,11 @@ struct PageDirectory
 	}
 }
 
-interface IVirtualAllocator
-{
-nothrow:
 
-	void initialize(IPhysicalAllocator phys_allocator, ref MemoryInfo info);
+void initialize(ref MemoryInfo info);
 
-	void map_page(virt_addr address, uint permissions);
-	void unmap_page(virt_addr address);
-
-}
+void map_page(virt_addr address, uint permissions);
+void unmap_page(virt_addr address);
 
 public PageDirectory* clone_page_directory()
 {

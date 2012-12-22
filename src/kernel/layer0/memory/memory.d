@@ -3,8 +3,8 @@ module kernel.layer0.memory.memory;
 import kernel.layer0.serial;
 import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.emplace;
-import kernel.layer0.memory.iPhysicalAllocator;
-import kernel.layer0.memory.iVirtualAllocator;
+import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
+import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
 import kernel.layer0.memory.bitmapAllocator;
 import kernel.layer0.memory.basicVirtualAllocator;
 
@@ -32,24 +32,10 @@ struct MemoryInfo
 	uint kernel_end;
 }
 
-IPhysicalAllocator g_physicalAllocator = void;
-IVirtualAllocator  g_virtualAllocator  = void;
-
-private
-{
-	// The global memory information struct.
-	// Constains information about how much
-	// memory the current machine has available.
-	MemoryInfo g_memoryInfo = void;
-
-	BitmapAllocator ba;
-	BasicVirtualAllocator va;	
-
-	// Allocate some space for the physical allocator
-	void _phys_allocator_space[__traits(classInstanceSize, typeof(ba))] = void;
-	// Allocator space for the virtual allocator
-	void _virt_allocator_space[__traits(classInstanceSize, typeof(va))] = void;
-}
+// The global memory information struct.
+// Constains information about how much
+// memory the current machine has available.
+MemoryInfo g_memoryInfo = void;
 
 void
 init_memory()
@@ -76,22 +62,14 @@ init_memory()
 	g_memoryInfo.kernel_start = cast(uint)&KERNEL_START;
 	g_memoryInfo.kernel_end = cast(uint)&KERNEL_END;
 
-	// Place the physical allocator in the correct spot
-	ba = emplace!BitmapAllocator(_phys_allocator_space[]);
-	g_physicalAllocator = ba;
-
-	// Place the virtual allocator in the correct spot
-	va = emplace!BasicVirtualAllocator(_virt_allocator_space[]);
-	g_virtualAllocator = va;
-
 	//============================================================================
 	// Initialize the physical allocator
 	//============================================================================
-	g_physicalAllocator.initialize(g_memoryInfo);
+	physAllocator.initialize(g_memoryInfo);
 
 	// Reserve addresses in the physical allocator so they're not
 	// given out as addresses
-	g_physicalAllocator.reserve_range(0x0, 0x200000);
+	physAllocator.reserve_range(0x0, 0x200000);
 
 	//============================================================================
 	// End of physical allocator initialization
@@ -101,7 +79,7 @@ init_memory()
 	// Initialize the virtual allocator
 	//============================================================================
 
-	g_virtualAllocator.initialize(g_physicalAllocator, g_memoryInfo);
+	virtAllocator.initialize(g_memoryInfo);
 
 	//============================================================================
 	// End of virtual allocator initialization
