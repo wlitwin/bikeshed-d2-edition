@@ -1,7 +1,5 @@
 module kernel.layer0.vga;
 
-import core.vararg; // From druntime
-
 __gshared:
 nothrow:
 

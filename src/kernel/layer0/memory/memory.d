@@ -5,8 +5,6 @@ import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.emplace;
 import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
 import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
-import kernel.layer0.memory.bitmapAllocator;
-import kernel.layer0.memory.basicVirtualAllocator;
 
 __gshared:
 // These are linker symbols,
