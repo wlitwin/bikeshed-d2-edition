@@ -2,6 +2,17 @@ module utils.minfo;
 
 import declares;
 
+extern(C) __gshared ModuleReference* _Dmodule_ref;
+
+// This linked list is created by a compiler generated function inserted
+// into the .ctor list by the compiler.
+struct ModuleReference
+{
+	ModuleReference* next;
+	ModuleInfo*      mod;
+}
+
+
 struct ModuleGroup
 {
 	this(ModuleInfo*[] modules)
