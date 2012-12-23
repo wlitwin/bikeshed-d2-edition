@@ -183,24 +183,14 @@ void sys_kill(ProcessControlBlock* pcb)
 	Pid pid = cast(Pid)ARG(pcb)[1];
 
 	// Find the PCB to kill
-	// Would be super convenient if delegates/closures
-	// were able to be used!
-	struct Compare
+	bool compare(ref in ProcessControlBlock* pcb) nothrow
 	{
-	nothrow:
-		int val_to_find;
-		bool compare(const ref ProcessControlBlock* pcb) const 
-		{
-			return val_to_find == pcb.pid;
-		}
+		return pcb.pid == pid;
 	}
-
-	Compare compare_struct;
-	compare_struct.val_to_find = pid;
 
 	ProcessControlBlock* found_pcb = null;
 
-	if (g_pcb_list.find(compare_struct, found_pcb))
+	if (g_pcb_list.find(&compare, found_pcb))
 	{
 		// Mark this process as killed
 		found_pcb.state = State.KILLED;	
