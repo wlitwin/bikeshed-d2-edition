@@ -101,12 +101,12 @@ nothrow:
 		return false;
 	}
 
-	bool find(S)(ref in S compare_obj, out T found)
+	bool find(scope bool delegate(ref in T obj) nothrow pred, out T found)
 	{
 		LinkedNode!(T)* node = head;
 		while (node != null)
 		{
-			if (compare_obj.compare(node.data))
+			if (pred(node.data))
 			{
 				found = node.data;
 				return true;
