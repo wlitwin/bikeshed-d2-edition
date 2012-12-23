@@ -51,6 +51,6 @@ __outl:
 	enter $0, $0
 	movl ARG1(%ebp), %edx /* Get the port number into edx */
 	movl ARG2(%ebp), %eax /* Get the value into eax */
-	outl (%dx)
+	outl (%dx)            /* Output the dword to the port */
 	leave
 	ret
