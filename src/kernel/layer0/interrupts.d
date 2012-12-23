@@ -110,7 +110,7 @@ init_interrupts()
 	serial_outln("Interrupts: Finished");
 }
 
-void
+public void
 install_isr(int vector, isr_handler handler)
 {
 	__isr_table[vector] = handler;
@@ -272,6 +272,10 @@ __default_expected_handler(int vector, int code)
 		panic();
 	}
 }
+
+//=============================================================================
+// Some default ISR handlers
+//=============================================================================
 
 extern (C) void
 gpf_handler(int vector, int code)
