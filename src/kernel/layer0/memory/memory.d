@@ -31,7 +31,7 @@ struct MemoryInfo
 }
 
 // The global memory information struct.
-// Constains information about how much
+// Contains information about how much
 // memory the current machine has available.
 MemoryInfo g_memoryInfo = void;
 
