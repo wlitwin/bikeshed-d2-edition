@@ -42,11 +42,7 @@ IDT_ADDRESS = 0x2500
 
 /* Memory map constants */
 MMAP_SEGMENT = 0x02D0
-MMAP_ADDRESS = 0x2D00
-MMAP_EXT_LO = 0x00
-MMAP_EXT_HI = 0x02
-MMAP_CFG_LO = 0x04
-MMAP_CFG_HI = 0x06
+MMAP_MAX_ENTRIES = (0x7C00 - 0x2D04) / 24 /* 24 byte entries for E280 BIOS function */
 
 /* Other constants */
 BOOT_SEGMENT  = 0x07c0 /* Default BIOS address to load the bootsector */
@@ -258,26 +254,6 @@ move_gdt:
 	rep movsb
 	ret
 
-/* Determine how much physical memory is available
- *
- * Parameters:
- *     None
- */
-check_memory:
-	pushw %ax
-	pushw %ds
-	movw $MMAP_SEGMENT, %ax
-	movw %ax, %ds /* Write relative to the memory map start */
-	movw $0xE801, %ax /* Get the memory size for >64MiB configurations */
-	int $0x15
-	movw %ax, MMAP_EXT_LO /* Extended memory between 1MiB - 16MiB in KiB */
-	movw %bx, MMAP_EXT_HI /* Extended memory > 16MiB in 64KiB blocks */
-	movw %cx, MMAP_CFG_LO /* Configured memory between 1MiB - 16MiB in KiB */
-	movw %dx, MMAP_CFG_HI /* Configured memory > 16MiB in 64KiB blocks */
-	popw %ds
-	popw %ax
-	ret
-
 /* The GDT and IDTR contents
  */
 gdt_48:
@@ -315,6 +291,100 @@ drive:
 	.word 0x80 /* 0x00 = floppy, 0x80 = USB */
 boot_sig:
 	.word 0xAA55
+
+/* Determine how much physical memory is available
+ *
+ * Adapted from:
+ * http://wiki.osdev.org/Detecting_Memory_%28x86%29#BIOS_Function:_INT_0x15.2C_EAX_.3D_0xE820
+ *
+ * Parameters:
+ *     None
+ */
+check_memory:
+	pushw %ax
+	pushw %bx
+	pushw %cx
+	pushw %dx
+	pushw %es
+	pushw %di
+	pushw %bp
+	pushw %ds
+	
+	/* Set the start of the buffer */
+	movw $MMAP_SEGMENT, %bx
+	mov  %bx, %ds
+	mov  %bx, %es
+	/* The first 4 bytes are for the # of entries */
+	movw $0x4, %di
+	/* Make a valid ACPI 3.X entry */
+	movw $1, 20(%di) /* which should really be DS:24 -> 0x2D18 */
+
+	xorw %bp, %bp          /* How many entries there are */
+	xorl %ebx, %ebx        /* Clear EBX */
+	movl $0x534D4150, %edx /* Magic number into EDX */
+	movl $0xE820, %eax     /* E820 memory command */	
+	movl $24, %ecx         /* Ask the BIOS for 24 bytes */
+	int $0x15              /* Call the BIOS */
+
+	/* Check for failures */
+	jc cm_failed /* If the carry bit is set, then it failed */
+	movl $0x534D4150, %edx /* Sometimes this register is destroyed */
+	cmpl %eax, %edx /* EAX and EDX should be the same after the call */
+	jne cm_failed
+	testl %ebx, %ebx /* List is one in length, which is not enough... */
+	je cm_failed
+	
+	jmp cm_jumpin
+
+cm_loop:
+	movl $0xE820, %eax
+	movw $1, 20(%di)
+	movl $24, %ecx
+	int $0x15
+	jc cm_end_of_list
+	movl $0x534D4150, %edx
+
+cm_jumpin:
+	jcxz cm_skip_entry
+	cmp $20, %cl
+	jbe cm_no_text
+	testb $1, 20(%di)
+	je cm_skip_entry
+
+cm_no_text:
+	mov 8(%di), %ecx
+	or 12(%di), %ecx
+	jz cm_skip_entry
+	inc %bp
+
+	cmpw $MMAP_MAX_ENTRIES, %bp
+	jge cm_end_of_list
+
+	add $24, %di
+
+cm_skip_entry:
+	testl %ebx, %ebx
+	jne cm_loop
+
+cm_end_of_list:
+	movw %bp, 0x0 /* Should be DS:0x0 -> 0x2D00 */	
+	clc
+	jmp cm_ret
+
+cm_failed:
+	movw $-1, 0x0 /* Should be DS:0x0 -> 0x2D00 */
+	
+cm_ret:	
+	popw %ds
+	popw %bp
+	popw %di
+	popw %es
+	popw %dx
+	popw %cx
+	popw %bx
+	popw %ax
+	ret
+
 
 /* This marks the second stage of our bootloader, this is the part of the
  * bootloader that isn't automatically loaded into RAM by the BIOS
