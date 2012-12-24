@@ -35,18 +35,49 @@ struct MemoryInfo
 // memory the current machine has available.
 MemoryInfo g_memoryInfo = void;
 
-void
-init_memory()
+align(1) /* Means pack the values */
+struct SMAPEntry
 {
-	serial_outln("\nMemory: Initializing");
+	uint baseL;
+	uint baseH;
+	uint lengthL;
+	uint lengthH;
+	ushort type;
+	uint ACPI;
+}
+
+void
+detect_memory()
+{
 	// Some useful constants
 	// The memory addresses are defined in bootloader.S
 	enum MMAP_ADDRESS = 0x2D00;
-	enum MMAP_EXT_LO  = 0x00;
-	enum MMAP_EXT_HI  = 0x02;
-	enum MMAP_CFG_LO  = 0x04;
-	enum MMAP_CFG_HI  = 0x06;
-	enum ONE_MEGABYTE = 1024 * 1024;
+
+	serial_outln("Size: ", SMAPEntry.sizeof);
+	assert(SMAPEntry.sizeof == 24);
+	uint count = *(cast(uint *)0x2D00);
+	serial_outln("Memory map size: ", count);
+	if (count < 0)
+	{
+		serial_outln("Failed to get memory map");
+		asm{hlt;}
+	}
+
+	SMAPEntry* entry = cast(SMAPEntry*) 0x2D04;
+	for (int i = 0; i < count; ++i)
+	{
+		long baseH = entry.baseH;
+		long lenH  = entry.lengthH;
+		long baseAddr = (baseH << 32) | entry.baseL;
+		long length   = (lenH  << 32) | entry.lengthL;
+
+		serial_outln("Base: ", baseAddr, " Length: ", length, 
+					 " Type: ", entry.type, " ACPI ", entry.ACPI);
+
+		++entry;
+	}
+
+	/*enum ONE_MEGABYTE = 1024 * 1024;
 
 	// Check how much memory is available	
 	uint memory_low = *(cast(ushort*) (MMAP_ADDRESS + MMAP_EXT_LO)) * 1024;
@@ -59,6 +90,17 @@ init_memory()
 	g_memoryInfo.memory_total = memory_total;
 	g_memoryInfo.kernel_start = cast(uint)&KERNEL_START;
 	g_memoryInfo.kernel_end = cast(uint)&KERNEL_END;
+	*/
+
+	asm {hlt;}
+}
+
+void
+init_memory()
+{
+	serial_outln("\nMemory: Initializing");
+
+	detect_memory();
 
 	//============================================================================
 	// Initialize the physical allocator
@@ -85,13 +127,5 @@ init_memory()
 
 	// Setup the kernel's heap
 	malloc_initialize();
-
-	// Print some debug information
-	serial_outln("\tMemory Size: ", memory_total);
-	serial_outln("\tMemory Low : ", memory_low);
-	serial_outln("\tMemory Hi  : ", memory_hi);
-	serial_outln("\tStart of kernel: ", g_memoryInfo.kernel_start);
-	serial_outln("\tEnd of kernel: ", g_memoryInfo.kernel_end);
-	serial_outln("Memory: Finished\n");
 }
 
