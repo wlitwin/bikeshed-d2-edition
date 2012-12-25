@@ -34,7 +34,7 @@ SECTIONS {
 		*(.rel.rodata.*)
 	}
 
-	.tbss ALIGN(4096) : {
+	.tbss ALIGN(0x1000) : {
 		tbss = .; _tbss = .; __tbss = .;
 		*(.tbss) /* Thread local storage stuff */
 		*(.tbss.*)
@@ -42,7 +42,7 @@ SECTIONS {
 		*(.tcommon)
 	}
 
-	.bss : {
+	.bss : ALIGN(0x1000) {
 		sbss = .;
 		bss = .; _bss = .; __bss = .;
 		*(COMMON)
