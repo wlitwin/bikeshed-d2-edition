@@ -576,16 +576,14 @@ copy_buffer:
 	/* Multiply EBX by 512 to get the number of bytes to copy */
 	shl $9, %ebx
 
-	/* Save the new load_location for next time */
-	cli
-
+	/* Use the string copy instruction to copy the block of data */
 	movl %eax, %esi
 	movl %edx, %edi
-	movl $10001, %ecx
+	movl %ebx, %ecx
 	cld /* Clear the direciton flag, so both pointers increment */
-	movsb
-	hlt
+	rep movsd
 
+	/* Save the new load_location for next time */
 	addl %ebx, %edx /* EDX += # of bytes to copy */
 	movl %edx, load_location+BOOT_ADDRESS
 
