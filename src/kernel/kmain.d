@@ -10,20 +10,6 @@ import kernel.layer1.syscall.syscalls;
 __gshared:
 string message = "Hello World! From the D2 Programming language!";
 
-extern(C)
-{
-	__gshared
-	{
-		void* _deh_beg;
-		void* _deh_end;
-	}
-
-	__gshared
-	{
-		int errno;
-	}
-}
-
 extern (C) void 
 kmain()
 {
