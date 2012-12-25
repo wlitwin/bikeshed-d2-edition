@@ -34,7 +34,6 @@ fancycat: $(OUTPUT_DIR)/FancyCat
 $(OUTPUT_DIR)/bootloader.b: 
 	$(AS) $(AS_FLAGS) src/boot/bootloader.S -o $(OBJ_DIR)/bootloader.o
 	$(LD) $(LD_FLAGS) $(OBJ_DIR)/bootloader.o -Tsrc/boot/bootloader.ld -o $(OUTPUT_DIR)/bootloader.b
-	/bin/rm -f $(OBJ_DIR)/bootloader.o
 
 $(OUTPUT_DIR)/FancyCat:
 	$(CC) $(C_FLAGS) src/boot/FancyCat.c -o $(OUTPUT_DIR)/FancyCat
@@ -64,4 +63,4 @@ kernel: bootloader fancycat $(KERNEL_OBJECTS)
 emu: kernel qemu
 
 qemu: 
-	qemu-system-i386 -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/2 -net user -net nic,model=i82559er -vnc :0
+	qemu-system-i386 -s -m 1024 -cpu core2duo -drive file=$(OUTPUT_DIR)/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -monitor stdio -serial /dev/pts/2 -net user -net nic,model=i82559er 
