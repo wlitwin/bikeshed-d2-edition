@@ -55,7 +55,7 @@ SECTIONS {
 		ebss = .;
 	}
 	end = .; _end = .; __end = .;
-	KERNEL_END = .;
+	KERNEL_END = ALIGN(0x4);
 
 	/DISCARD/ :
 	{
