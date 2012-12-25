@@ -697,7 +697,6 @@ _protected_mode_segment:
 	outb %al, $0x70
 
 	/* Load the real mode GDT selectors */
-	xorw %bx, %bx
 	movw $GDT_DATA, %ax
 	movw %ax, %ds
 	movw %ax, %es
