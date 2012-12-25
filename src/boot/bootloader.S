@@ -314,6 +314,7 @@ check_memory:
 	movw $MMAP_SEGMENT, %bx
 	mov  %bx, %ds
 	mov  %bx, %es
+
 	/* The first 4 bytes are for the # of entries */
 	movw $0x4, %di
 	/* Make a valid ACPI 3.X entry */
@@ -346,17 +347,25 @@ cm_loop:
 
 cm_jumpin:
 	jcxz cm_skip_entry
+
+	/*cmpw $2, 16(%di)
+	je cm_skip_entry
+	*/
+
 	cmp $20, %cl
 	jbe cm_no_text
+
 	testb $1, 20(%di)
 	je cm_skip_entry
+
 
 cm_no_text:
 	mov 8(%di), %ecx
 	or 12(%di), %ecx
 	jz cm_skip_entry
-	inc %bp
 
+	inc %bp
+	/* Don't got over the maximum entries */
 	cmpw $MMAP_MAX_ENTRIES, %bp
 	jge cm_end_of_list
 
@@ -372,7 +381,7 @@ cm_end_of_list:
 	jmp cm_ret
 
 cm_failed:
-	movw $-1, 0x0 /* Should be DS:0x0 -> 0x2D00 */
+	movl $-1, 0x0 /* Should be DS:0x0 -> 0x2D00 */
 	
 cm_ret:	
 	popw %ds
@@ -551,8 +560,8 @@ copy_buffer:
 	.code32
 
 	/* Restore our registers */
-	movl %ecx, %eax
-	movl %edx, %ebx
+	movl %ecx, %eax /* Source address */
+	movl %edx, %ebx /* # of sectors to copy */
 
 	/* Grab the current load_location */
 	movl load_location+BOOT_ADDRESS, %edx /* Add BOOT_ADDRESS because 
@@ -567,17 +576,17 @@ copy_buffer:
 	/* Multiply EBX by 512 to get the number of bytes to copy */
 	shl $9, %ebx
 
-/* TODO implement a faster version */
-cb_copy_loop:
-	movl (%eax), %ecx /* EAX is the source */
-	movl %ecx, (%edx) /* EDX is the destination */
-	subl $4, %ebx
-	addl $4, %eax
-	addl $4, %edx
-	testl %ebx, %ebx
-	jnz cb_copy_loop
-
 	/* Save the new load_location for next time */
+	cli
+
+	movl %eax, %esi
+	movl %edx, %edi
+	movl $10001, %ecx
+	cld /* Clear the direciton flag, so both pointers increment */
+	movsb
+	hlt
+
+	addl %ebx, %edx /* EDX += # of bytes to copy */
 	movl %edx, load_location+BOOT_ADDRESS
 
 	/* Before returning we need to switch back to realmode */
@@ -693,9 +702,9 @@ _protected_mode_segment:
 	xorw %bx, %bx
 	movw $GDT_DATA, %ax
 	movw %ax, %ds
-	movw %bx, %es
-	movw %bx, %fs
-	movw %bx, %gs
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
 	movw $GDT_STACK, %ax
 	movw %ax, %ss
 	
@@ -866,4 +875,4 @@ stack_seg_16_2: /* Limit 64K, base 0, R/W code segment, 16-bit 4K */
 end_gdt:
 gdt_len = end_gdt - start_gdt
 
-.org 1536
+.org 1536 /* Adjust the BUFFER_START variable if this org is changed */
