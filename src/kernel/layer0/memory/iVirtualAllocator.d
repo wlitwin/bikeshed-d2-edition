@@ -239,7 +239,7 @@ private void enable_paging(ref MemoryInfo info)
 	identity_map(m_kernelTable, info.kernel_start, info.kernel_end);
 
 	// Don't forget to map the stack!
-	identity_map(m_kernelTable, info.kernel_end, 0x200000);
+	identity_map(m_kernelTable, info.kernel_end, 0x300000);
 
 	// In case we mess up
 	install_isr(INT_VEC_PAGE_FAULT, &isr_page_fault);
