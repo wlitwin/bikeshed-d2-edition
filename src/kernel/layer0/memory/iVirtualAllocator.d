@@ -38,16 +38,6 @@ struct PageDirectory
 	}
 }
 
-/*
-extern (D)
-{
-	void initialize(ref MemoryInfo info);
-
-	void map_page(virt_addr address, uint permissions);
-	void unmap_page(virt_addr address);
-}
-*/
-
 public PageDirectory* clone_page_directory()
 {
 	return null;
@@ -61,9 +51,6 @@ public void switch_page_directory(PageDirectory* pd)
 		mov CR3, EAX;
 	}
 }
-
-__gshared:
-nothrow:
 
 private PageDirectory* m_kernelTable;
 
@@ -178,6 +165,11 @@ void unmap_page(virt_addr address)
 	}
 }
 
+void identity_map(const virt_addr low, const virt_addr hi)
+{
+	identity_map(m_kernelTable, low, hi);
+}
+
 // Only works when paging is off
 void identity_map(PageDirectory* pd, const virt_addr low, const virt_addr hi)
 {
@@ -232,14 +224,7 @@ private void enable_paging(ref MemoryInfo info)
 
 	m_kernelTable.tables[1023] = cast(uint)m_kernelTable | PG_READ_WRITE | PG_PRESENT;
 
-	// Identity map the first megabyte
-	identity_map(m_kernelTable, 0x0, 0x100000);
-
-	// Identity map the kernel
-	identity_map(m_kernelTable, info.kernel_start, info.kernel_end);
-
-	// Don't forget to map the stack!
-	identity_map(m_kernelTable, info.kernel_end, 0x300000);
+	setup_initial_pages();
 
 	// In case we mess up
 	install_isr(INT_VEC_PAGE_FAULT, &isr_page_fault);
@@ -292,26 +277,25 @@ void isr_page_fault(int vector, int code)
 		mov cr2_val, EAX;
 	}
 
-	/*	serial_outln("Interrupt context:\n", 
-		g_interruptContext.EFL, "\n", 
-		g_interruptContext.CS, "\n", 
-		g_interruptContext.EIP, "\n", 
-		g_interruptContext.error_code, "\n", 
-		g_interruptContext.vector, "\n", 
-		g_interruptContext.EAX, "\n", 
-		g_interruptContext.ECX, "\n", 
-		g_interruptContext.EDX, "\n",
-		g_interruptContext.EBX, "\n",
-		g_interruptContext.ESP, "\n",
-		g_interruptContext.EBP, "\n",
-		g_interruptContext.ESI, "\n",
-		g_interruptContext.EDI, "\n",
-		g_interruptContext.DS, "\n",
-		g_interruptContext.ES, "\n",
-		g_interruptContext.FS, "\n",
-		g_interruptContext.GS, "\n",
-		g_interruptContext.SS);
-	 */
+	serial_outln("Interrupt context:\n", 
+			g_interruptContext.EFL, "\n", 
+			g_interruptContext.CS, "\n", 
+			g_interruptContext.EIP, "\n", 
+			g_interruptContext.error_code, "\n", 
+			g_interruptContext.vector, "\n", 
+			g_interruptContext.EAX, "\n", 
+			g_interruptContext.ECX, "\n", 
+			g_interruptContext.EDX, "\n",
+			g_interruptContext.EBX, "\n",
+			g_interruptContext.ESP, "\n",
+			g_interruptContext.EBP, "\n",
+			g_interruptContext.ESI, "\n",
+			g_interruptContext.EDI, "\n",
+			g_interruptContext.DS, "\n",
+			g_interruptContext.ES, "\n",
+			g_interruptContext.FS, "\n",
+			g_interruptContext.GS, "\n",
+			g_interruptContext.SS);
 
 	serial_outln("US RW P - Description");
 	serial_outln(code & 0x4, "  ",
