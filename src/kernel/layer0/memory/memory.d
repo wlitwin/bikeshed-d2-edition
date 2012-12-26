@@ -3,10 +3,13 @@ module kernel.layer0.memory.memory;
 import kernel.layer0.serial;
 import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.emplace;
+import kernel.layer0.memory.mmap_list;
+
 import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
 import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
 
 __gshared:
+nothrow:
 // These are linker symbols,
 // To get the address of the end of the kernel, take
 // the address of KERNEL_END.
@@ -46,13 +49,6 @@ struct SMAPEntry
 	uint ACPI;
 }
 
-align(1)
-struct MemoryMap
-{
-	uint start;
-	uint length;
-}
-
 void
 detect_memory()
 {
@@ -74,18 +70,13 @@ detect_memory()
 	// Need to go through and cleanup what's been given by
 	// the BIOS. Sometimes the regions overlap or need to
 	// be merged together.
-
-	int mmap_count = 0;
-	// Assume the KERNEL_END symbol is at a 4-byte boundary
-	MemoryMap* mmap_start = cast(MemoryMap*) &KERNEL_END;
+	initialize_mmap_list();
 
 	SMAPEntry* entry = cast(SMAPEntry*) SMAP_ADDRESS;
 	for (int i = 0; i < count; ++i, ++entry)
 	{
 		if (entry.type == 0x1) // Available memory
 		{
-			MemoryMap* cur_mmap = mmap_start;
-
 			const uint bh = entry.baseH;
 			const uint bl = entry.baseL;
 			const uint lh = entry.lengthH;
@@ -94,79 +85,27 @@ detect_memory()
 			uint start  = cast(uint) ((cast(ulong)bh << 32) | bl);
 			uint length = cast(uint) ((cast(ulong)lh << 32) | ll);
 
-			// Loop through and check the existing entries	
-			if (mmap_count == 0)
-			{
-				// Fill it in
-				cur_mmap.start  = start;
-				cur_mmap.length = length;
-
-				++mmap_count;
-			}
-			else
-			{
-				uint s_plus_l = start + length;
-				// Loop through the current mmap entries and see
-				// if we can combine any, otherwise add a new one
-				for (int j = 0; j < mmap_count; ++j, ++cur_mmap)
-				{
-					uint ms_plus_l = cur_mmap.start + cur_mmap.length;
-
-					// Check if the current mmap includes the current
-					// SMAP range entirely
-					if (start >= cur_mmap.start && s_plus_l <= ms_plus_l)
-					{
-						serial_outln("Combine");
-						goto handled; // Don't have to do anything
-					}
-					// Check if the SMAP entry overlaps towards the
-					// beginning of the current MMAP entry
-					else if (start <= cur_mmap.start && cur_mmap.start <= s_plus_l)
-					{
-						serial_outln("Fix start");
-						cur_mmap.start = start;
-						if (s_plus_l > ms_plus_l)
-						{
-							cur_mmap.length = length;
-						}
-						else
-						{
-							cur_mmap.length = ms_plus_l - cur_mmap.start;
-						}
-						goto handled;
-					}
-					else if (cur_mmap.start <= start && start <= ms_plus_l)
-					{
-						serial_outln("Fix end");
-						if (s_plus_l > ms_plus_l)
-						{
-							cur_mmap.length = s_plus_l - cur_mmap.start;
-						}
-						goto handled;
-					}
-				}
-
-				serial_outln("Add new");
-				// Can't combine... So make a new one
-				cur_mmap.start  = start;
-				cur_mmap.length = length;
-				++mmap_count;
-asm { handled:; }
-			}
+			add_usable_region(start, length);
 		}
 	}
 
+	// Reserve regions the kernel uses
+	reserve_region(cast(uint) &KERNEL_START, 0x200000 - cast(uint)&KERNEL_START);
+	reserve_region(0x500, 0x2500 + 256*4); // GDT + IDT
+	reserve_region(0x7C00, 1536); // Bootloader
+	reserve_region(0x2D00, SMAPEntry.sizeof*count); // SMAP entries
+
 	// Loop through all the entries
-	g_memoryInfo.mmap_count = mmap_count;
-	g_memoryInfo.mmap = mmap_start;
+	g_memoryInfo.mmap_count = get_mmap_count();
+	g_memoryInfo.mmap = get_mmap_start();
 	g_memoryInfo.kernel_start = cast(uint) &KERNEL_START;
 	// The memory map starts at the current end of the kernel
-	g_memoryInfo.kernel_end = cast(uint) (mmap_start + mmap_count);
+	g_memoryInfo.kernel_end = cast(uint) (get_mmap_start() + get_mmap_count());
 
 	// Loop through and find the total amount of memory
-	MemoryMap* mm = mmap_start;
+	const(MemoryMap)* mm = g_memoryInfo.mmap;
 	g_memoryInfo.memory_total = 0;
-	for (int i = 0; i < mmap_count; ++i, ++mm)
+	for (int i = 0; i < g_memoryInfo.mmap_count; ++i, ++mm)
 	{
 		g_memoryInfo.memory_total += mm.length;	
 	}
@@ -177,12 +116,8 @@ asm { handled:; }
 	serial_outln("Kernel end:   ", g_memoryInfo.kernel_end, " (Orig: ", (cast(uint)&KERNEL_END), ")");
 	serial_outln("Total memory: ", g_memoryInfo.memory_total);
 	serial_outln("Mmap count:   ", g_memoryInfo.mmap_count);
-	mm = mmap_start;
-	for (int i = 0; i < g_memoryInfo.mmap_count; ++i, ++mm)
-	{
-		serial_outln("\tRegion Start: ", mm.start);
-		serial_outln("\tRegion Length:", mm.length);
-	}
+
+	print_mmap_list();
 
 	serial_outln("\nSMAP:");
 	entry = cast(SMAPEntry*) SMAP_ADDRESS;
@@ -195,7 +130,7 @@ asm { handled:; }
 		++entry;
 	}
 
-	asm {hlt;}
+	asm { hlt; }
 }
 
 void
