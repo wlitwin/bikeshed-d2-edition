@@ -14,16 +14,6 @@ private uint m_bitmapSize;
 private uint* m_bitmap;
 private uint m_last_index;
 
-private uint phys_to_index(phys_addr address)
-{
-	return cast(uint)address / PAGE_SIZE / 32;
-}
-
-private uint phys_to_offset(phys_addr address)
-{
-	return (cast(uint)address / PAGE_SIZE) % 32;
-}
-
 void initialize(uint* bitmap_loc, uint mem_size)
 {
 	serial_outln("\nBitmap Allocator: Initializing");
@@ -41,6 +31,27 @@ void initialize(uint* bitmap_loc, uint mem_size)
 	serial_outln("\tBitmap location: ", cast(uint) m_bitmap);
 	serial_outln("Bitmap Allocator: Finished\n");
 }
+
+uint* get_bitmap_location()
+{
+	return m_bitmap;
+}
+
+uint get_bitmap_size()
+{
+	return m_bitmapSize;
+}
+
+private uint phys_to_index(phys_addr address)
+{
+	return cast(uint)address / PAGE_SIZE / 32;
+}
+
+private uint phys_to_offset(phys_addr address)
+{
+	return (cast(uint)address / PAGE_SIZE) % 32;
+}
+
 
 void reserve_page(phys_addr address)
 {
