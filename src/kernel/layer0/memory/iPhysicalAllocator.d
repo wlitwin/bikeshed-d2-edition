@@ -3,6 +3,7 @@ module kernel.layer0.memory.iPhysicalAllocator;
 import kernel.layer0.serial;
 import kernel.layer0.support;
 import kernel.layer0.memory.memory;
+import kernel.layer0.memory.iVirtualAllocator : identity_map;
 
 private import bitmap = kernel.layer0.memory.bitmapAllocator;
 
@@ -13,7 +14,6 @@ nothrow:
 public:
 
 alias uint phys_addr;
-
 
 void
 initialize(ref MemoryInfo info)
@@ -49,10 +49,25 @@ initialize(ref MemoryInfo info)
 	}
 }
 
+void
+map_initial_allocator_pages()
+{
+	uint bitmap_start = cast(uint) bitmap.get_bitmap_location();	
+	uint bitmap_end   = bitmap_start + bitmap.get_bitmap_size();
+
+	identity_map(bitmap_start, bitmap_end);
+}
+
 phys_addr
 allocate_page()
 {
 	return bitmap.allocate_page();
+}
+
+phys_addr
+allocate_pages(int num_blocks)
+{
+	return bitmap.allocate_pages(num_blocks);
 }
 
 void
@@ -71,11 +86,6 @@ unreserve_region(uint start, uint length)
 void
 free_page(phys_addr ptr)
 {
-	bitmap.free_page(cast(uint) ptr);
+	bitmap.free_page(ptr);
 }
 
-phys_addr
-allocate_pages(int num_blocks)
-{
-	return bitmap.allocate_pages(num_blocks);
-}
