@@ -1,10 +1,10 @@
 module kernel.layer0.memory.bitmapAllocator;
 
-import kernel.layer0.serial;
-import kernel.layer0.support : panic;
-
-import kernel.layer0.memory.memory : PAGE_SIZE, MemoryInfo;
-import kernel.layer0.memory.iPhysicalAllocator;
+private import kernel.layer0.serial;
+private import kernel.layer0.support : panic;
+private import kernel.layer0.memory.iPhysicalAllocator;
+private import kernel.layer0.memory.memory : PAGE_SIZE;
+private import kernel.layer0.memory.util;
 
 __gshared:
 nothrow:
@@ -24,36 +24,22 @@ private uint phys_to_offset(phys_addr address)
 	return (cast(uint)address / PAGE_SIZE) % 32;
 }
 
-void initialize(ref MemoryInfo info)
+void initialize(uint* bitmap_loc, uint mem_size)
 {
 	serial_outln("\nBitmap Allocator: Initializing");
 
+	m_bitmap = bitmap_loc;
+	// Bitmap size in uint's
+	m_bitmapSize = mem_size / PAGE_SIZE / 32;
+	// Used to speed up allocations
 	m_last_index = 0;
 
-	// Figure out how large the bitmap needs to
-	// be based on the total amount of memory available
-	m_bitmapSize = (info.memory_total / PAGE_SIZE) / 32;	
-
-	// Align it to the nearest 4-byte boundary
-	m_bitmap = cast(uint*) ((info.kernel_end + 0x4) & 0xFFFFFFF8);
-
-	// For now mark up to the bitmaps end as used
-	phys_addr end_of_bitmap = (cast(uint)m_bitmap) + 
-		m_bitmapSize * uint.sizeof;
-	// TODO - Set the individual bits instead of adding +1
-	uint end_index = phys_to_index(end_of_bitmap) + 1;
-	serial_outln("\tEnd Index: ", end_index);
-	serial_outln("\tEnd Address: ", end_of_bitmap);
-	for (int i = 0; i < end_index; ++i)
-	{
-		m_bitmap[i] = 0xFFFFFFFF;
-	}
+	// Mark the entire bitmap as used
+	memset(m_bitmap, 0xFF, m_bitmapSize*uint.sizeof);
 
 	serial_outln("\tBitmap size: ", m_bitmapSize);
 	serial_outln("\tBitmap location: ", cast(uint) m_bitmap);
 	serial_outln("Bitmap Allocator: Finished\n");
-
-	// TODO update the end of the kernel
 }
 
 void reserve_page(phys_addr address)
@@ -71,8 +57,7 @@ void reserve_range(phys_addr from, phys_addr to)
 	serial_outln("Bitmap Allocator: Reserving range ", cast(uint)from, " - ", cast(uint)to);
 	if (from > to)
 	{
-		serial_outln("Bitmap Allocator: From address is greater than To address");
-		panic();
+		panic("Bitmap Allocator: From address is greater than To address");
 	}
 
 	while (from <= to)
@@ -80,6 +65,51 @@ void reserve_range(phys_addr from, phys_addr to)
 		reserve_page(from);
 		from += PAGE_SIZE;
 	}
+}
+
+void free_range(phys_addr from, phys_addr to)
+{
+	serial_outln("Bitmap Allocator: Freeing range ", cast(uint)from, " - ", cast(uint)to);
+
+	// Don't let our bitmap get overwritten
+	uint bitmap_addr = cast(uint) m_bitmap;
+	uint bitmap_end  = bitmap_addr + m_bitmapSize;
+
+	if (to > bitmap_addr && to <= bitmap_end)
+	{
+		to = bitmap_addr-4;
+	}
+
+	if (from >= bitmap_addr && from < bitmap_end)
+	{
+		from = bitmap_end+4;
+	}
+
+	if (from >= to ||
+			(from <= bitmap_addr && to >= bitmap_end))
+	{ 
+		return; 
+	}
+
+	serial_outln("Bitmap Allocator: Adjusted range ", cast(uint)from, " - ", cast(uint)to);
+
+	while (from <= to)
+	{
+		//free_page(from);
+		uint index = phys_to_index(from);
+		if (index >= m_bitmapSize)
+			return;
+		uint offset = phys_to_offset(from);
+		m_bitmap[index] &= ~(1 << offset);
+		from += PAGE_SIZE;
+	}
+}
+
+// Allocate continuous pages
+phys_addr allocate_pages(int num_pages)
+{
+	panic("Bitmap: Allocate pages not implemented!");
+	return 0;
 }
 
 phys_addr allocate_page()
@@ -96,8 +126,7 @@ phys_addr allocate_page()
 	if (m_bitmap[i] == 0xFFFFFFFF)
 	{
 		// Uh-oh no more memory!
-		serial_outln("Bitmap Allocator: No more memory!");
-		panic();
+		panic("Bitmap Allocator: No more memory!");
 	}
 
 	// Okay find the free bit
@@ -111,8 +140,7 @@ phys_addr allocate_page()
 	// Check if something weird happend
 	if (offset >= 32 || the_bit == 0)
 	{
-		serial_outln("Bitmap Allocator: Error finding free page!");
-		panic();
+		panic("Bitmap Allocator: Error finding free page!");
 	}
 
 	m_bitmap[i] |= the_bit;
