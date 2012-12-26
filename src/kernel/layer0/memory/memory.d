@@ -4,6 +4,7 @@ import kernel.layer0.serial;
 import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.emplace;
 import kernel.layer0.memory.mmap_list;
+public import kernel.layer0.memory.mmap_list : MemoryMap;
 
 import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
 import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
@@ -26,7 +27,8 @@ enum PAGE_SIZE = 4096;
 // and size in one location
 struct MemoryInfo
 {
-	uint memory_total;
+	uint total_usable_memory;
+	uint max_mem_address;
 	uint kernel_start;
 	uint kernel_end;
 	uint mmap_count;
@@ -63,8 +65,7 @@ detect_memory()
 	int count = *(cast(int *)SMAP_COUNT);
 	if (count < 0)
 	{
-		serial_outln("Failed to get memory map");
-		asm{hlt;}
+		panic("Failed to get memory map");
 	}
 
 	// Need to go through and cleanup what's been given by
@@ -90,10 +91,17 @@ detect_memory()
 	}
 
 	// Reserve regions the kernel uses
+	// We'll need to do something special later for
+	// reserving the lower memory addresses, in order
+	// to use things like DMA and other cool features
+	print_mmap_list();
+	reserve_region(0x0, 0x100000);
+	print_mmap_list();
 	reserve_region(cast(uint) &KERNEL_START, 0x200000 - cast(uint)&KERNEL_START);
-	reserve_region(0x500, 0x2500 + 256*4); // GDT + IDT
+	/*reserve_region(0x000, 0x2500 + 256*4 - 0x000); // GDT + IDT
 	reserve_region(0x7C00, 1536); // Bootloader
 	reserve_region(0x2D00, SMAPEntry.sizeof*count); // SMAP entries
+	*/
 
 	// Loop through all the entries
 	g_memoryInfo.mmap_count = get_mmap_count();
@@ -104,17 +112,24 @@ detect_memory()
 
 	// Loop through and find the total amount of memory
 	const(MemoryMap)* mm = g_memoryInfo.mmap;
-	g_memoryInfo.memory_total = 0;
+	g_memoryInfo.total_usable_memory = 0;
+	g_memoryInfo.max_mem_address = 0;
 	for (int i = 0; i < g_memoryInfo.mmap_count; ++i, ++mm)
 	{
-		g_memoryInfo.memory_total += mm.length;	
+		g_memoryInfo.total_usable_memory += mm.length;	
+
+		if (mm.start + mm.length > g_memoryInfo.max_mem_address)
+		{
+			g_memoryInfo.max_mem_address = mm.start + mm.length;
+		}
 	}
 
 	// Print some debug info
 	serial_outln("Memory information");
 	serial_outln("Kernel start: ", g_memoryInfo.kernel_start);
 	serial_outln("Kernel end:   ", g_memoryInfo.kernel_end, " (Orig: ", (cast(uint)&KERNEL_END), ")");
-	serial_outln("Total memory: ", g_memoryInfo.memory_total);
+	serial_outln("Total memory: ", g_memoryInfo.total_usable_memory);
+	serial_outln("Max mem addr: ", g_memoryInfo.max_mem_address);
 	serial_outln("Mmap count:   ", g_memoryInfo.mmap_count);
 
 	print_mmap_list();
@@ -129,8 +144,6 @@ detect_memory()
 		serial_outln("S: ", start, " L: ", length, " T: ", entry.type, " A: ", entry.ACPI);
 		++entry;
 	}
-
-	asm { hlt; }
 }
 
 void
@@ -147,7 +160,7 @@ init_memory()
 
 	// Reserve addresses in the physical allocator so they're not
 	// given out as addresses
-	physAllocator.reserve_range(0x0, 0x200000);
+	//physAllocator.reserve_range(0x0, 0x200000);
 
 	//============================================================================
 	// End of physical allocator initialization
