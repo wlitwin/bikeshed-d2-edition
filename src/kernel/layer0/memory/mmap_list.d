@@ -154,13 +154,13 @@ reserve_region(const uint region_start, const uint region_length)
 	int new_count = 0;
 	while (cur_mmap != end_mmap)
 	{
-		if (cur_mmap.start < 0)
+		if (cur_mmap.start == -1)
 		{
 			// Need to move entries over
 			MemoryMap* mm_look_ahead = cur_mmap + 1;
 			while (mm_look_ahead != end_mmap)
 			{
-				if (mm_look_ahead.start < 0) { ++mm_look_ahead; }
+				if (mm_look_ahead.start == -1) { ++mm_look_ahead; }
 				else { break; }
 			}
 			
