@@ -22,6 +22,9 @@ extern(C) int KERNEL_START;
 
 enum PAGE_SIZE = 4096;
 
+// Bottom of the stack
+enum STACK_MAX_LOC = 0x200000;
+
 // Gathers a bunch of information
 // about the machines memory layout
 // and size in one location
@@ -144,6 +147,21 @@ detect_memory()
 		serial_outln("S: ", start, " L: ", length, " T: ", entry.type, " A: ", entry.ACPI);
 		++entry;
 	}
+}
+
+// Called by the virtual allocator, because it
+// doesn't know about what needs to be mapped
+void
+setup_initial_pages()
+{
+	// Identity map the lower 1MiB
+	virtAllocator.identity_map(0x0, 0x100000);		
+	// Identity map the kernel for now
+	virtAllocator.identity_map(g_memoryInfo.kernel_start, g_memoryInfo.kernel_end);
+	// Identity map the kernel's stack
+	virtAllocator.identity_map(g_memoryInfo.kernel_end, STACK_MAX_LOC);
+	// Ask the physical manager to map some pages
+	physAllocator.map_initial_allocator_pages();
 }
 
 void
