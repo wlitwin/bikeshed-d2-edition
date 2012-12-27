@@ -1,7 +1,6 @@
 module kernel.layer0.memory.memory;
 
 import kernel.layer0.serial;
-import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.emplace;
 import kernel.layer0.memory.mmap_list;
 public import kernel.layer0.memory.mmap_list : MemoryMap;
@@ -193,8 +192,5 @@ init_memory()
 	//============================================================================
 	// End of virtual allocator initialization
 	//============================================================================
-
-	// Setup the kernel's heap
-	malloc_initialize();
 }
 
