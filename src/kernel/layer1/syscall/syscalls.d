@@ -8,7 +8,6 @@ import kernel.layer0.support;
 import kernel.layer0.serial;
 import kernel.layer0.types;
 import kernel.layer0.memory.util;
-import kernel.layer0.memory.malloc : kmalloc;
 import kernel.layer0.memory.iVirtualAllocator;
 
 __gshared:
@@ -91,7 +90,7 @@ isr_syscall(int vector, int code)
 
 void sys_fork(ProcessControlBlock* pcb)
 {
-	ProcessControlBlock* new_pcb = cast(ProcessControlBlock*)kmalloc(ProcessControlBlock.sizeof);
+	ProcessControlBlock* new_pcb = alloc_pcb();
 	if (new_pcb == null)
 	{
 		// Set the return value
