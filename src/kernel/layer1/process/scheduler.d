@@ -3,10 +3,10 @@ module kernel.process.scheduler;
 import kernel.layer0.types;
 import kernel.layer0.serial;
 import kernel.layer0.support;
-import kernel.layer0.memory.malloc;
 import kernel.layer0.memory.iVirtualAllocator : switch_page_directory;
 
 import kernel.layer1.process.pcb;
+import kernel.layer1.blockallocator;
 import kernel.layer1.linkedlist;
 
 __gshared:
@@ -21,13 +21,33 @@ private ReadyQueue[NUMBER_OF_READY_QUEUES] g_ready_queues;
 
 public LinkedList!(ProcessControlBlock*) g_pcb_list;
 
+private BlockAllocator!(ProcessControlBlock)* g_pcb_allocator = void;
+
 public void 
 scheduler_initialize()
 {
 	g_currentPCB = null;
 
+	g_pcb_allocator = BlockAllocator!(ProcessControlBlock).create_allocator(
+			cast(ProcessControlBlock*)0xD0000000, 
+			cast(ProcessControlBlock*)0xD1000000);
+
 	serial_outln("Scheduler initialized");
 }
+
+public ProcessControlBlock*
+alloc_pcb()
+{
+	return g_pcb_allocator.alloc();
+}
+
+/*
+public void
+free_pcb(ProcessControlBlock* pcb)
+{
+	g_pcb_allocator.free(pcb);	
+}
+*/
 
 private bool pcb_priority_compare(ProcessControlBlock* pcb1, ProcessControlBlock* pcb2)
 {
@@ -85,7 +105,7 @@ cleanup(ProcessControlBlock* pcb)
 		panic("Cleanup NOT IMPLEMENTED!");
 	}
 
-	kfree(cast(void*)pcb);
+	g_pcb_allocator.free(pcb);
 }
 
 public void
