@@ -1,4 +1,4 @@
-import kernel.layer0.memory.malloc;
+import kernel.layer1.malloc;
 
 // A quick note - This linked list will deallocate the entire LinkedNode when
 // removing something from the list. This means if T is not a pointer or a
