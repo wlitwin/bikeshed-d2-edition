@@ -157,7 +157,7 @@ phys_addr allocate_page()
 	m_bitmap[i] |= the_bit;
 
 	phys_addr address = (i * PAGE_SIZE * 32) + (offset * PAGE_SIZE);
-	serial_outln("Bitmap Allocator: Giving out page ", address);
+	//serial_outln("Bitmap Allocator: Giving out page ", address);
 	m_last_index = i;
 	return address;
 }
