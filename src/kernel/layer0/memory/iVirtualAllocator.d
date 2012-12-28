@@ -38,11 +38,6 @@ struct PageDirectory
 	}
 }
 
-public PageDirectory* clone_page_directory()
-{
-	return null;
-}
-
 public void switch_page_directory(PageDirectory* pd)
 {
 	asm
@@ -56,10 +51,10 @@ private PageDirectory* m_kernelTable;
 
 void initialize(ref MemoryInfo info)
 {
-	serial_outln("BVA: Initializing");
+	serial_outln("VA: Initializing");
 
 	enable_paging(info);
-	serial_outln("BVA: Finished");
+	serial_outln("VA: Finished");
 }
 
 private uint addr_to_pd_index(virt_addr address)
@@ -87,14 +82,79 @@ private PageTable* get_page_table(uint index)
 	return cast(PageTable *)(cast(uint*)0xFFC00000 + (0x400 * index));
 }
 
-void map_range(PageDirectory* pd,
-		const phys_addr p_low, const phys_addr p_hi,
-		const virt_addr v_low, const virt_addr v_hi)
+void map_range(virt_addr v_low, const virt_addr v_hi, 
+			   const uint permissions)
 {
-	panic("map_range() not yet implemented");					
+	assert(v_low < v_hi);
+
+	while (v_low < v_hi)
+	{
+		map_page(v_low, permissions);
+		v_low += PAGE_SIZE;
+	}
 }
 
-void map_page(virt_addr address, uint permissions)
+void map_range(phys_addr p_lo, const phys_addr p_hi,
+			   virt_addr v_lo, const virt_addr v_hi,
+			   const uint permissions)
+{
+	assert(p_lo < p_hi);
+	assert(v_lo < v_hi);
+	assert((p_hi-p_lo) == (v_hi-v_lo));
+
+	PageDirectory* pd = get_current_page_directory();
+
+	p_lo = p_lo & 0xFFFFF000; // Align to 4KiB boundary
+	v_lo = v_lo & 0xFFFFF000; // Align to 4KiB boundary
+
+	while (v_lo < v_hi)
+	{
+		uint pg_dir_index = addr_to_pd_index(v_lo);
+		uint pg_tbl_index = addr_to_pt_index(v_lo);
+
+		PageTable* page_table = get_page_table(pg_dir_index);
+
+		if ((pd.tables[pg_dir_index] & PG_PRESENT) == 0)
+		{
+			// Need to allocate a page table
+			uint phys_page_table = cast(uint)physAllocator.allocate_page();
+			pd.tables[pg_dir_index] = phys_page_table | 3;
+
+			memclr(cast(void *)page_table, PAGE_SIZE);
+		}
+
+		if (page_table.addrs[pg_tbl_index] != 0)
+		{
+			panic("VA: map_range - address is already mapped!");
+		}
+
+		page_table.addrs[pg_tbl_index] = p_lo | (permissions & 0xFFF) | PG_PRESENT;
+
+		// Flush the TLB
+		uint pd_asm = cast(uint)pd & 0xFFFFF000;
+		uint pt_asm = cast(uint)page_table & 0xFFFFF000;
+		asm
+		{
+			invlpg v_lo;
+			invlpg pt_asm;
+			invlpg pd_asm;
+		}
+
+		v_lo += PAGE_SIZE;
+		p_lo += PAGE_SIZE;
+	}
+}
+
+public PageDirectory* clone_page_directory()
+{
+// PageDirectory* new_pd = cast(PageDirectory*) physAllocator.allocate_page();	
+// TODO - Map the new_pd back to itself 
+// PageDirectory* cur_pd = get_current_page_directory();
+
+	assert(false, "VA: clone_page_directory() not implemented");
+}
+
+void map_page(const virt_addr address, const uint permissions)
 {
 	PageDirectory* pd = get_current_page_directory();
 	uint pg_dir_index = addr_to_pd_index(address);
@@ -112,7 +172,7 @@ void map_page(virt_addr address, uint permissions)
 
 	if (page_table.addrs[pg_tbl_index] != 0)
 	{
-		panic("BVA: map_page - address is already mapped!");
+		panic("VA: map_page - address is already mapped!");
 	}
 
 	// Get a new physical address to map
@@ -256,7 +316,7 @@ void unset_paging_bit()
 
 immutable(string[]) page_table_errors = 
 [
-"Supervisory process tried to read a non-present page entry",
+	"Supervisory process tried to read a non-present page entry",
 	"Supervisory process tried to read a page and caused a protection fault",
 	"Supervisory process tried to write to a non-present page entry",
 	"Supervisory process tried to write a page and cause a protection fault",
@@ -264,7 +324,7 @@ immutable(string[]) page_table_errors =
 	"User process tried to read a page and caused a protection fault",
 	"User process tried to write a non-present page entry",
 	"User process tried to write a page and caused a protection fault"
-	];
+];
 
 	extern (C)
 void isr_page_fault(int vector, int code)
