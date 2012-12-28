@@ -1,9 +1,3 @@
 [submodule "src/dlibrary/dmd"]
 	path = src/dlibrary/dmd
 	url = https://github.com/D-Programming-Language/dmd.git
-[submodule "src/dlibrary/druntime"]
-	path = src/dlibrary/druntime
-	url = https://github.com/D-Programming-Language/druntime.git
-[submodule "src/dlibrary/phobos"]
-	path = src/dlibrary/phobos
-	url = https://github.com/D-Programming-Language/phobos.git
