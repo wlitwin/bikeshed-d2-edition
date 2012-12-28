@@ -64,8 +64,14 @@ public:
 		*(cast(T**)free_ptr_tail) = cast(T*)0x0;
 	}
 
+	// TODO - What to do when we reach 0 free blocks
 	T* alloc()
 	{
+		if (free_amt == 0)
+		{
+			return null;
+		}
+
 		T* node = free_ptr_head;
 		free_ptr_head = *(cast(T**)free_ptr_head);
 
@@ -79,6 +85,7 @@ public:
 		return node;
 	}
 
+	// TODO - What to do when we reach 0 free blocks
 	void free(T* ptr)
 	{
 		if (ptr < start_address ||
