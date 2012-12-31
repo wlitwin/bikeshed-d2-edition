@@ -25,7 +25,7 @@ private:
 
 public:
 
-	static BlockAllocator!(T)* create_allocator(T* start, T* end)
+	static BlockAllocator!(T)* create_allocator(const T* start, const T* end)
 	{
 		if (start > end || (cast(uint)end-cast(uint)start) < (BlockAllocator!(T).sizeof + T.sizeof))
 		{
@@ -63,7 +63,7 @@ public:
 
 	private int toIndex(const T* address) const
 	{
-		int index = (cast(int)address - cast(int)start_address) / T.sizeof;
+		int index = address - start_address;
 
 		if (index < 0 || index >= length) return -1;
 
@@ -77,6 +77,8 @@ public:
 
 	private void setupFreeList()
 	{
+		// Make every block point to the next block, and the last
+		// block contain -1 as the 'End of List' marker
 		for (int i = 0; i < length-1; ++i)
 		{
 			*(cast(int*)(&start_address[i])) = i+1;
@@ -87,8 +89,10 @@ public:
 
 	T* alloc()
 	{
+		// The last allocation was the last block
 		if (alloc_index == -1) panic("Block Allocator (" ~ T.stringof ~ "): No more free blocks");
 
+		// Grab the current block and set the next free block
 		T* block = toAddress(alloc_index);
 		alloc_index = *(cast(int*)(&start_address[alloc_index]));
 
@@ -97,12 +101,14 @@ public:
 
 	void free(const T* ptr)
 	{
-		const int index = toIndex(ptr);	
+		const int index = toIndex(ptr);
 		if (index < 0) panic("Block Allocator (" ~ T.stringof ~ "): Freeing invalid address");
 
+		// Make sure the current free pointer is correct
 		int* old_free = cast(int*)(&start_address[free_index]);
 		if (*old_free != -1) panic("Block Allocator (" ~ T.stringof ~ "): Free list corrupted");
 
+		// Move the free pointer
 		*old_free = index;
 		free_index = index;
 
