@@ -30,6 +30,11 @@ PROT_STACK = REAL_STACK - 0x1000 /* Give the real mode 4KiB of stack */
  * Especially because the bootloader does very little 
  * stack allocation. This also allows the copy buffer to
  * be larger.
+ *
+ * NOTE - If the stack somehow magically uses that 11KiB it will
+ *        overwrite the memory map data. Since the memory map isn't
+ *        expected to have that many entries and the stack is hardly 
+ *        used, this shouldn't be a problem.
  */
 
 /* GDT constants */
@@ -348,10 +353,6 @@ cm_loop:
 cm_jumpin:
 	jcxz cm_skip_entry
 
-	/*cmpw $2, 16(%di)
-	je cm_skip_entry
-	*/
-
 	cmp $20, %cl
 	jbe cm_no_text
 
@@ -365,7 +366,7 @@ cm_no_text:
 	jz cm_skip_entry
 
 	inc %bp
-	/* Don't got over the maximum entries */
+	/* Don't go over the maximum entries */
 	cmpw $MMAP_MAX_ENTRIES, %bp
 	jge cm_end_of_list
 
@@ -428,8 +429,8 @@ ss_load_loop:
 
 	/* In case the kernel returns */
 	cli
-kernel_returned:
 	movl $0xA0A0A0A0, %eax
+kernel_returned:
 	hlt
 	jmp kernel_returned 
 
@@ -464,7 +465,7 @@ load_module:
 
 	/* Get the load location */
 	movl %es:(0), %eax /* The first part of the header is the load location */
-	cmpl $0xFFFFFFFF, %eax /* Check the load location, -1 means we're done */
+	cmpl $-1, %eax /* Check the load location, -1 means we're done */
 	je lm_exit
 
 	/* Okay this is a valid module, lets continue loading */
