@@ -2,9 +2,12 @@ module kernel.layer0.serial;
 import kernel.layer0.support;
 import kernel.layer0.templates;
 
+import kernel.layer0.print;
+
 __gshared:
 nothrow:
 private:
+
 
 enum SERIAL_PORT_A = 0x3F8;
 
@@ -93,6 +96,11 @@ write_string(char[] s)
 	}
 }
 
+public
+{
+mixin(CreatePrinter!("kserial_print", serial_char, write_string));
+}
+
 public void 
 serial_outln(S...)(S args)
 {
@@ -141,62 +149,3 @@ serial_out(S...)(S args)
 	}
 }
 
-/*
-public void 
-serial_out(...)
-{
-	for (int i = 0; i < _arguments.length; ++i)
-	{
-		if (_arguments[i] == typeid(string))
-		{
-			string str = va_arg!(string)(_argptr);
-			write_string(str);
-		}
-		else if (_arguments[i] == typeid(ulong)
-				|| _arguments[i] == typeid(uint)
-				|| _arguments[i] == typeid(ushort)
-				|| _arguments[i] == typeid(ubyte))
-		{
-			uint val = va_arg!(uint)(_argptr);
-			char buffer[20];
-			for (int j = to_string_u(val, buffer); j < 20; ++j)
-			{
-				serial_char(buffer[j]);
-			}
-		}
-		else if (_arguments[i] == typeid(long)
-				|| _arguments[i] == typeid(int) 
-				|| _arguments[i] == typeid(short) 
-				|| _arguments[i] == typeid(byte))
-		{
-			int val = va_arg!(int)(_argptr);				
-			char buffer[21];
-			for (int j = to_string_i(val, buffer); j < 21; ++j)
-			{
-				serial_char(buffer[j]);
-			}
-		}
-		else if (_arguments[i] == typeid(char))
-		{
-			serial_char(va_arg!(char)(_argptr));
-		}
-		else if (_arguments[i] == typeid(const(char)[]))
-		{
-			const(char)[] str = va_arg!(const(char)[])(_argptr);
-			foreach (c; str) serial_char(c);
-		}
-		else
-		{
-			write_string("serial_outln: Failed to match type\n");
-			write_string("As integer: ");
-			uint val = va_arg!(uint)(_argptr);
-			char buffer[20];
-			for (int j = to_string_u(val, buffer); j < 20; ++j)
-			{
-				serial_char(buffer[j]);
-			}
-			serial_char('\n');
-		}
-	}
-}
-*/
