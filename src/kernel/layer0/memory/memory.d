@@ -23,6 +23,8 @@ enum PAGE_SIZE = 4096;
 
 // Bottom of the stack
 enum STACK_MAX_LOC = 0x200000;
+// Top of the stack
+enum STACK_MIN_LOC = 0x100000;
 
 // Gathers a bunch of information
 // about the machines memory layout
@@ -97,20 +99,24 @@ detect_memory()
 	// reserving the lower memory addresses, in order
 	// to use things like DMA and other cool features
 	print_mmap_list();
-	reserve_region(0x0, 0x100000);
 	print_mmap_list();
-	reserve_region(cast(uint) &KERNEL_START, 0x200000 - cast(uint)&KERNEL_START);
 	/*reserve_region(0x000, 0x2500 + 256*4 - 0x000); // GDT + IDT
 	reserve_region(0x7C00, 1536); // Bootloader
 	reserve_region(0x2D00, SMAPEntry.sizeof*count); // SMAP entries
 	*/
 
 	// Loop through all the entries
-	g_memoryInfo.mmap_count = get_mmap_count();
-	g_memoryInfo.mmap = get_mmap_start();
 	g_memoryInfo.kernel_start = cast(uint) &KERNEL_START;
 	// The memory map starts at the current end of the kernel
 	g_memoryInfo.kernel_end = cast(uint) (get_mmap_start() + get_mmap_count());
+
+	reserve_region(0x0, 0x100000);
+	reserve_region(STACK_MIN_LOC, STACK_MAX_LOC - STACK_MIN_LOC);
+	reserve_region(g_memoryInfo.kernel_start, g_memoryInfo.kernel_end - g_memoryInfo.kernel_start);
+
+	// These might have changed because we're reserving pages
+	g_memoryInfo.mmap_count = get_mmap_count();
+	g_memoryInfo.mmap = get_mmap_start();
 
 	// Loop through and find the total amount of memory
 	const(MemoryMap)* mm = g_memoryInfo.mmap;
@@ -153,12 +159,12 @@ detect_memory()
 void
 setup_initial_pages()
 {
-	// Identity map the lower 1MiB
-	virtAllocator.identity_map(0x0, 0x100000);		
+	// Identity map the lower 1MiB + Kernel Stack
+	virtAllocator.identity_map(0x0, 0x100000);
 	// Identity map the kernel for now
 	virtAllocator.identity_map(g_memoryInfo.kernel_start, g_memoryInfo.kernel_end);
 	// Identity map the kernel's stack
-	virtAllocator.identity_map(g_memoryInfo.kernel_end, STACK_MAX_LOC);
+	virtAllocator.identity_map(STACK_MIN_LOC, STACK_MAX_LOC);
 	// Ask the physical manager to map some pages
 	physAllocator.map_initial_allocator_pages();
 }
