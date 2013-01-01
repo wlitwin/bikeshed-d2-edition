@@ -4,6 +4,7 @@ import kernel.layer0.interrupts;
 import kernel.layer0.memory.memory;
 
 import kernel.layer1.clock;
+import kernel.layer1.malloc;
 import kernel.layer1.process.scheduler;
 import kernel.layer1.syscall.syscalls;
 
@@ -15,13 +16,18 @@ kmain()
 {
 	put_string(0, 0, message);
 
+
 	init_serial_debug();
+
+	kserial_println!("{}")("Testing!");
 
 	// Must be first
 	init_interrupts();
 	init_clock();
 	// Memory needs to happen before any other modules
 	init_memory();
+
+	malloc_initialize();
 
 	// All other modules that depend on linkedlist or memory allocation
 	scheduler_initialize();
