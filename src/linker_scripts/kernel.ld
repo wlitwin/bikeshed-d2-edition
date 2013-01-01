@@ -2,7 +2,7 @@ ENTRY (pre_kernel)
 OUTPUT_ARCH (i386)
 
 SECTIONS {
-	. = 0x100000;
+	. = 0x200000;
 	KERNEL_START = .;
 
 	.text : {
