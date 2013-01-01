@@ -114,7 +114,7 @@ detect_memory()
 	reserve_region(STACK_MIN_LOC, STACK_MAX_LOC - STACK_MIN_LOC);
 	reserve_region(g_memoryInfo.kernel_start, g_memoryInfo.kernel_end - g_memoryInfo.kernel_start);
 
-	// These might have changed because we're reserving pages
+	// These might have changed because we're reserving addresses
 	g_memoryInfo.mmap_count = get_mmap_count();
 	g_memoryInfo.mmap = get_mmap_start();
 
@@ -159,7 +159,7 @@ detect_memory()
 void
 setup_initial_pages()
 {
-	// Identity map the lower 1MiB + Kernel Stack
+	// Identity map the lower 1MiB
 	virtAllocator.identity_map(0x0, 0x100000);
 	// Identity map the kernel for now
 	virtAllocator.identity_map(g_memoryInfo.kernel_start, g_memoryInfo.kernel_end);
