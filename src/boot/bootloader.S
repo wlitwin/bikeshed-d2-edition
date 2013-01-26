@@ -1,5 +1,12 @@
-/* FancyCat compliant booloader - TODO - Document specifics of 
- * switch_to_real_mode and switch_to_protected_mode
+/* FancyCat compliant booloader, with one minor exception. This bootloader
+ * does not check that both fields in the end of header marker are 0xFFFFFFFF.
+ *
+ * This should not be a problem because this is generally an unused location
+ * with regards to placing kernels and such.
+ *
+ * Much debugging has been done to eliminate possible bugs, but they may still
+ * exists, so proceed with caution. This bootloader has been tested on multiple
+ * Core2Duo and i5 processors (varying hardware) and has worked successfully.
  *
  * Date: 07/07/2012
  *
@@ -301,6 +308,27 @@ boot_sig:
  *
  * Adapted from:
  * http://wiki.osdev.org/Detecting_Memory_%28x86%29#BIOS_Function:_INT_0x15.2C_EAX_.3D_0xE820
+ *
+ * This function will create an array of memory regions at the
+ * location 0x2D04, with 0x2D00 being the size of the array.
+ *
+ * The C struct definition is as follows:
+ *
+ * struct MemMapEntry
+ * {
+ *    uint baseL;   // 4 bytes
+ *    uint baseH;   // 4 bytes
+ *    uint lengthL; // 4 bytes
+ *    uint LengthH; // 4 bytes
+ *    ushort type;  // 2 bytes
+ *    uint ACPI;    // 4 bytes
+ * }
+ *
+ * These structures are expected to be packed in memory
+ * so if using GCC something like the following may be 
+ * needed at the end of the struct:
+ *
+ *    __attribute__((packed))
  *
  * Parameters:
  *     None

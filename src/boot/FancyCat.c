@@ -1,3 +1,43 @@
+/**
+ * Author: Walter Litwinczyk
+ * Contributors: David Larsen, Sean Congden
+ *
+ * FancyCat - Concatenates files together with a small header in between.
+ *            Also puts padding between files so every header starts at a
+ *            512 byte boundary. At the end there is an end of header 
+ *            marker. This is a header that contains 0xFFFFFFFF for both 
+ *            the files location and size.
+ *
+ * The header format is as follows:
+ *
+ * .-----------------------------------.
+ * | Location (4 Bytes)                |
+ * |-----------------------------------|
+ * | Size of file in sectors (4 bytes) |
+ * '-----------------------------------'
+ *
+ * Pretty simple. 
+ *
+ * NOTES:
+ *  - The size of the file is rounded up to the nearest 
+ *    sector size. 
+ *
+ *  - Padding is set to the pattern 0x22 instead of zeros
+ *    to make debugging slightly easier.
+ *
+ * USAGE:
+ *
+ *        FancyCat location file {[location] file ...}
+ *
+ * If only one location is provided for multiple files, next file
+ * is assumed to start at the sector after the file before it. This
+ * means there is still padding between those files.
+ *
+ * The program outputs an 'image.dat' file. Currently this output name
+ * cannot be changed unless the program is edited, no command line 
+ * arguments are provided to change it.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
