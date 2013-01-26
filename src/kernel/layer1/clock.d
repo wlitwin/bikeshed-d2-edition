@@ -3,10 +3,12 @@ import kernel.layer0.serial;
 import kernel.layer0.support;
 import kernel.layer0.interrupts;
 
+import kernel.layer1.process.scheduler : update_pcbs;
+
 __gshared:
 nothrow:
 
-uint system_time;
+public uint system_time;
 
 int pin_wheel = 0;
 int p_index = 0;
@@ -56,6 +58,9 @@ isr_clock(int vector, int code)
 		++p_index;				
 		put_char(79, 0, "|/-\\"[p_index & 3]);
 	}
+
+	// In the scheduler
+	update_pcbs();
 
 	// Acknowledge the interrupt
 	__outb(PIC_MASTER_CMD_PORT, PIC_EOI);
