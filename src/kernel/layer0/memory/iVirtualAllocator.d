@@ -47,7 +47,7 @@ public void switch_page_directory(PageDirectory* pd)
 	}
 }
 
-private PageDirectory* m_kernelTable;
+public PageDirectory* g_kernelTable;
 
 void initialize(ref MemoryInfo info)
 {
@@ -227,7 +227,12 @@ void unmap_page(virt_addr address)
 
 void identity_map(const virt_addr low, const virt_addr hi)
 {
-	identity_map(m_kernelTable, low, hi);
+	identity_map(g_kernelTable, low, hi);
+}
+
+void free_page_directory(PageDirectory* pd)
+{
+	panic("VMM: Free page directory not implemented");
 }
 
 // Only works when paging is off
@@ -277,12 +282,12 @@ void identity_map(PageDirectory* pd, const virt_addr low, const virt_addr hi)
 
 private void enable_paging(ref MemoryInfo info)
 {
-	m_kernelTable = cast(PageDirectory *) physAllocator.allocate_page();	
+	g_kernelTable = cast(PageDirectory *) physAllocator.allocate_page();	
 	// Make sure it's zero'd out, forgetting to do this can cause all
 	// kinds of fun, hard to track down bugs
-	memclr(cast(void *) m_kernelTable, PAGE_SIZE); 
+	memclr(cast(void *) g_kernelTable, PAGE_SIZE); 
 
-	m_kernelTable.tables[1023] = cast(uint)m_kernelTable | PG_READ_WRITE | PG_PRESENT;
+	g_kernelTable.tables[1023] = cast(uint)g_kernelTable | PG_READ_WRITE | PG_PRESENT;
 
 	setup_initial_pages();
 
@@ -290,7 +295,7 @@ private void enable_paging(ref MemoryInfo info)
 	install_isr(INT_VEC_PAGE_FAULT, &isr_page_fault);
 
 	// Turn on paging!
-	switch_page_directory(m_kernelTable);
+	switch_page_directory(g_kernelTable);
 	set_paging_bit();
 }
 
