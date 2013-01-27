@@ -6,7 +6,7 @@
  *            Also puts padding between files so every header starts at a
  *            512 byte boundary. At the end there is an end of header 
  *            marker. This is a header that contains 0xFFFFFFFF for both 
- *            the files location and size.
+ *            the file's location and size.
  *
  * The header format is as follows:
  *

@@ -5,7 +5,7 @@
  * with regards to placing kernels and such.
  *
  * Much debugging has been done to eliminate possible bugs, but they may still
- * exists, so proceed with caution. This bootloader has been tested on multiple
+ * exist, so proceed with caution. This bootloader has been tested on multiple
  * Core2Duo and i5 processors (varying hardware) and has worked successfully.
  *
  * Date: 07/07/2012
@@ -309,8 +309,12 @@ boot_sig:
  * Adapted from:
  * http://wiki.osdev.org/Detecting_Memory_%28x86%29#BIOS_Function:_INT_0x15.2C_EAX_.3D_0xE820
  *
- * This function will create an array of memory regions at the
- * location 0x2D04, with 0x2D00 being the size of the array.
+ * If the location 0x2D00 (4 bytes) contains -1, then this method
+ * failed to detect memory properly. Otherwise this location contains
+ * the number of elements read.
+ *
+ * The start of the array is at 0x2D04. The elements are tightly
+ * packed following the layout as defined below.
  *
  * The C struct definition is as follows:
  *
@@ -324,9 +328,9 @@ boot_sig:
  *    uint ACPI;    // 4 bytes
  * }
  *
- * These structures are expected to be packed in memory
- * so if using GCC something like the following may be 
- * needed at the end of the struct:
+ * These structures are expected to be packed in memory.
+ * If you are using something like GCC then the following 
+ * may be needed at the end of the struct:
  *
  *    __attribute__((packed))
  *
@@ -344,9 +348,9 @@ check_memory:
 	pushw %ds
 	
 	/* Set the start of the buffer */
-	movw $MMAP_SEGMENT, %bx
-	mov  %bx, %ds
-	mov  %bx, %es
+	movw $MMAP_SEGMENT, %bx /* 0x2D0 */
+	mov  %bx, %ds /* Data segment is now starting at 0x2D00 */
+	mov  %bx, %es /* Extended segment is now starting at 0x2D00 */
 
 	/* The first 4 bytes are for the # of entries */
 	movw $0x4, %di
@@ -371,12 +375,12 @@ check_memory:
 	jmp cm_jumpin
 
 cm_loop:
-	movl $0xE820, %eax
-	movw $1, 20(%di)
-	movl $24, %ecx
+	movl $0xE820, %eax /* Loop until no more */
+	movw $1, 20(%di)   /* Set the parameters */
+	movl $24, %ecx     /* the same as before */
 	int $0x15
-	jc cm_end_of_list
-	movl $0x534D4150, %edx
+	jc cm_end_of_list /* Carry means end of list */
+	movl $0x534D4150, %edx /* Sometimes EDX is trashed */
 
 cm_jumpin:
 	jcxz cm_skip_entry
@@ -393,7 +397,7 @@ cm_no_text:
 	or 12(%di), %ecx
 	jz cm_skip_entry
 
-	inc %bp
+	inc %bp /* Add one to the count */
 	/* Don't go over the maximum entries */
 	cmpw $MMAP_MAX_ENTRIES, %bp
 	jge cm_end_of_list
@@ -405,8 +409,9 @@ cm_skip_entry:
 	jne cm_loop
 
 cm_end_of_list:
+	/* Store the number of elements in 0x2D00 */
 	movw %bp, 0x0 /* Should be DS:0x0 -> 0x2D00 */	
-	clc
+	clc /* Clear the carry bit and return */
 	jmp cm_ret
 
 cm_failed:
