@@ -334,12 +334,7 @@ isr_save()
 		call ECX;
 		add ESP, 8;
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		// !DANGEROUS - Fall into ISR_RESTORE!
-		// !We want this, but depends on the !
-		// !compiler putting the code in     !
-		// !order                            !
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		jmp isr_restore;
 	}
 }
 
