@@ -4,6 +4,9 @@ import defs;
 import io = std.file;
 import std.stdio;
 import std.conv;
+import std.string;
+import std.path;
+import std.c.string;
 
 class Context
 {
@@ -85,9 +88,111 @@ public:
 		writeln("Root Dir Cluster: ", root_directory_cluster);
 	}
 
+	/* Scans the FAT to see if there are enough free clusters. Returns true if the
+	 * file system currently has enough free clusters, false otherwise.
+	 *
+	 * num_clusters - How many free clusters to look for
+	 */
+	private bool has_space(uint num_clusters)
+	{
+		for (int i = 0; i < boot_record.max_fat_entries && num_clusters > 0; ++i)
+		{
+			if (FAT[i] == ClusterType.Free) 
+			{
+				--num_clusters;
+			}
+		}
+		
+		return num_clusters == 0;
+	}
+
+	private bool valid_directory(string path)
+	{
+		if (path[0] != '/') return false;	
+
+		// Walk the directory tree
+		string[] dirs = split(path, '/');
+		int index = 1;
+		int currentCluster = boot_record.root_directory;
+		Directory* current = root_directory;
+		for (name ; dirs)
+		{
+			current = get_directory(dirs[index], current, currentCluster, currentCluster);
+			if (current == null) 
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/* Finds the next free cluster in the file system, starting from a given
+	 * index. If no valid free clusters were found it returns 0.
+	 *
+	 * start_index - The index to start searching from
+	 */
+	private uint next_free_fat_index(uint start_index)
+	{
+		assert(start_index < boot_record.max_fat_entries, "next_free_fat_index: argument too large");
+
+		for (; start_index < boot_record.max_fat_entries; ++start_index)
+		{
+			if (FAT[start_index] == ClusterType.Free)
+			{
+				return start_index;
+			}
+		}
+
+		return 0; // 0 is not a valid index for the FAT file system (always reserved for boot record)
+	}	
+
+	/* Takes an array of data and finds clusters in the file system to put it.
+	 * If there's not enough free space it throws an exception.
+	 *
+	 * data - The data to put into the file system
+	 */
+	private uint fill_data(ubyte[] data)
+	{
+		uint num_clusters = data.length / cluster_size;
+		if (!has_space(num_clusters))
+		{
+			throw new Exception("Not enough space");
+		}
+
+		// Get the first free cluster
+		uint firstCluster = next_free_fat_index(0);
+
+		// Fill the first clusters space
+		uint dataOffset = 0;
+		ubyte* fsData = cluster_address(firstCluster);	
+		for (uint i = 0; i < boot_record.cluster_size && dataOffset < data.length; ++i)
+		{
+			fsData[i] = data[dataOffset++];	
+		}
+		--num_clusters;
+
+		// Repeat for remaining clusters
+		uint curCluster = firstCluster;
+		while (num_clusters > 0)
+		{
+			// Copy the file data into the cluster
+			fsData = cluster_address(curCluster);
+			for (uint i = 0; i < boot_record.cluster_size && dataOffset < data.length; ++i)
+			{
+				fsData[i] = data[dataOffset++];	
+			}
+
+			curCluster = next_free_fat_index(curCluster);
+			--num_clusters;
+		}
+
+		// Mark the the last clusters 'next' pointer to EOC
+		FAT[curCluster] = ClusterType.End_Of_Chain;
+	}
+
 	void addFile(string path, ubyte data[])
 	{
-		
 	}
 
 	void write(string filename)
