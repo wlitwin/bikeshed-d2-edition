@@ -28,8 +28,7 @@ enum ClusterType : uint
 
 enum DirectoryType : uint
 {
-	File = 0x00,
+	File = 0xEE,
 	Directory = 0xFF,
-	Deleted_File = 0xAA,
-	Deleted_Directory = 0xDD,
+	Free = 0x00
 }
