@@ -106,27 +106,6 @@ public:
 		return num_clusters == 0;
 	}
 
-	private bool valid_directory(string path)
-	{
-		if (path[0] != '/') return false;	
-
-		// Walk the directory tree
-		string[] dirs = split(path, '/');
-		int index = 1;
-		int currentCluster = boot_record.root_directory;
-		Directory* current = root_directory;
-		for (name ; dirs)
-		{
-			current = get_directory(dirs[index], current, currentCluster, currentCluster);
-			if (current == null) 
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	/* Finds the next free cluster in the file system, starting from a given
 	 * index. If no valid free clusters were found it returns 0.
 	 *
@@ -154,7 +133,7 @@ public:
 	 */
 	private uint fill_data(ubyte[] data)
 	{
-		uint num_clusters = data.length / cluster_size;
+		uint num_clusters = cast(uint)(data.length / cluster_size);
 		if (!has_space(num_clusters))
 		{
 			throw new Exception("Not enough space");
@@ -191,8 +170,82 @@ public:
 		FAT[curCluster] = ClusterType.End_Of_Chain;
 	}
 
+	/* Checks if a given string has the correct path
+	 * format. /some/path/to/file. It does not check
+	 * if that path actually exists
+	 */
+	private bool valid_path_string(string path)
+	{
+		// Path must start with a slash
+		if (path.length == 0 || path[0] != '/') 
+			return false;
+
+		// Everything else is valid
+		return true;
+	}
+
+	/* Get the directory part of the path. If the path
+	 * already points to a directory, the same path
+	 * is returned. Assumes directories have a / after
+	 * them. Therefore /path/to/dir -> /path/to
+	 * and /path/to/dir/ -> /path/to/dir
+	 *
+	 * Empty string is returned if the path is invalid.
+	 */
+	private string get_directory_path(string path)
+	{
+		if (!valid_path_string(path)) return "";
+
+		if (is_directory_path(path)) return path;
+
+		return path[0..lastIndexOf(path, '/')];
+	}
+
+	/* Checks if the path is a file. Assumes 
+	 * directories end in '/', therefore if the 
+	 * string is a valid path and doesn't end
+	 * in '/' it's a file.
+	 */
+	private bool is_file_path(string path)
+	{
+		if (!valid_path_string(path)) return false;
+
+		return path[$-1] != '/';
+	}
+
+	/* Checks if the path is a directory path. 
+	 * Assumes that directories end in '/'.
+	 */
+	private bool is_directory_path(string path)
+	{
+		if (!valid_path_string(path)) return false;
+
+		return path[$-1] == '/';
+	}
+
+	/* Get the filename part of the path. Example
+	 * /path/to/file -> file
+	 * Empty string is returned if the path is invalid.
+	 */
+	private string get_file_name(string path)
+	{
+		if (!is_file_path(path)) return "";
+
+		return path[lastIndexOf(path, '/')+1 .. $-1];
+	}
+
 	void addFile(string path, ubyte data[])
 	{
+		if (!is_file_path(path))
+		{
+			throw new Exception("Path is not a file path: " ~ path);
+		}
+
+		// Split the string into appropriate parts
+		string directory = get_directory_path(path);
+		string filename  = get_file_name(path);
+
+		// Find the directory
 	}
 
 	void write(string filename)
