@@ -13,7 +13,14 @@ bool ls(Context context, string[] command)
 		DirInfo[] dirInfo = context.getDirectoyListing(command[1]);
 		foreach (di ; dirInfo)
 		{
-			writeln(di.name, " - file: ", di.isFile, " - size: ", di.size);
+			if (di.isFile)
+			{
+				writeln(di.name, " - ", di.size, " bytes");
+			}
+			else
+			{
+				writeln(di.name, "/");
+			}
 		}
 
 		if (dirInfo.length == 0)
