@@ -235,6 +235,8 @@ public:
 		return path[lastIndexOf(path, '/')+1 .. $-1];
 	}
 
+	// Careful this is a closure'd class, it has direct
+	// access to things to the outside class.
 	class DirectoryWalker
 	{
 		uint curCluster;
@@ -429,7 +431,6 @@ public:
 		return indexOf(name, '/') == -1;
 	}
 
-
 	void addFile(string path, ubyte data[])
 	{
 		if (!is_file_path(path))
@@ -455,6 +456,24 @@ public:
 		if (!dirWalk.createFile(filename, data))
 		{
 			throw new Exception("Couldn't create file");
+		}
+	}
+
+	void addDirectory(string path)
+	{
+		if (!is_directory_path(path))
+		{
+			throw new Exception("Path is not a directory path: " ~ path);
+		}
+
+		string[] directories = split(path, "/");
+		DirectoryWalker dirWalk = new DirectoryWalker();
+		for (int i = 1; i < directories.length; ++i)
+		{
+			if (!dirWalk.next(directories[i], true))
+			{
+				throw new Exception("Couldn't create directory");
+			}
 		}
 	}
 
