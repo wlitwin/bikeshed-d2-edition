@@ -131,7 +131,8 @@ public:
 	 */
 	private bool fill_data(ubyte[] data, uint cluster)
 	{
-		uint num_clusters = cast(uint)(data.length / cluster_size);
+		uint num_clusters = cast(uint)(data.length / cluster_size) + 1;
+
 		if (!has_space(num_clusters))
 		{
 			return false;
@@ -232,7 +233,7 @@ public:
 	{
 		if (!is_file_path(path)) return "";
 
-		return path[lastIndexOf(path, '/')+1 .. $-1];
+		return path[lastIndexOf(path, '/')+1 .. $];
 	}
 
 	// Careful this is a closure'd class, it has direct
@@ -479,7 +480,7 @@ public:
 		string filename  = get_file_name(path);
 
 		DirectoryWalker dirWalk = new DirectoryWalker();
-		for (int i = 1; i < directories.length-1; ++i)
+		for (int i = 1; i < directories.length; ++i)
 		{
 			if (!dirWalk.next(directories[i], true))
 			{
@@ -577,7 +578,7 @@ bool strequal(const char[] str1, string str2)
 void strcopy(char[] dest, string src)
 {
 	int i = 0;
-	foreach (c ; src) 
+	foreach (c ; src)
 	{
 		if (i >= dest.length) break;
 		dest[i++] = c;
