@@ -253,17 +253,33 @@ public:
 			// Scan for the directory name
 			if (!valid_single_name(dirName)) return false;
 
+			// Don't modify the current directory and cluster
+			// until we find a match
+			uint cluster = curCluster;
+			Directory* dir = curDir;
 			for (int i = 0; i < DIRS_PER_CLUSTER; ++i)
 			{
 				if (dir[i].type == DirectoryType.Directory
-					&& strequal(dir[i].file_name, dirName))
+					&& strequal(dir[i].name, name))
 				{
+					// Change the current directory
 					curCluster = dir[i].cluster;
-					dir = cast(Directory*)cluster_address(curCluster);	
+					curDir = cast(Directory*) cluster_address(curCluster);
 					return true;
+				}
+
+				// Check if this directory extends onto 
+				// another cluster
+				if (i == DIRS_PER_CLUSTER-1
+					&& FAT[cluster] != ClusterType.End_Of_Chain)
+				{
+					i = 0;
+					cluster = FAT[cluster];
+					dir = cast(Directory*) cluster_address(cluster);
 				}
 			}
 
+			// Couldn't find the directory
 			return false;
 		}
 
