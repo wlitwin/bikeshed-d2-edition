@@ -259,8 +259,8 @@ public:
 
 			for (int i = 0; i < DIRS_PER_CLUSTER; ++i)
 			{
-				if (dir[i].type == DirectoryType.Directory 
-					&& dir[i].file_name == dirName)
+				if (dir[i].type == DirectoryType.Directory
+					&& strequal(dir[i].file_name, dirName))
 				{
 					curCluster = dir[i].cluster;
 					dir = cast(Directory*)cluster_address(curCluster);	
@@ -278,7 +278,10 @@ public:
 				if (!next(dir))
 				{
 					// Try to create it
-					if (!createDir(dir)) return false;
+					if (!createDir(dir)) 
+					{ 
+						return false; 
+					}
 
 					return next(dir);
 				}
@@ -294,7 +297,7 @@ public:
 		bool createDir(string name)
 		{
 			// Make sure the name does not contain
-			// and slashes
+			// any slashes
 			if (!valid_single_name(name)) return false;
 
 			// TODO make sure directory doesn't already exist
@@ -476,7 +479,7 @@ public:
 		string filename  = get_file_name(path);
 
 		DirectoryWalker dirWalk = new DirectoryWalker();
-		for (int i = 1; i < directories.length; ++i)
+		for (int i = 1; i < directories.length-1; ++i)
 		{
 			if (!dirWalk.next(directories[i], true))
 			{
@@ -501,7 +504,7 @@ public:
 
 		string[] directories = split(path, "/");
 		DirectoryWalker dirWalk = new DirectoryWalker();
-		for (int i = 1; i < directories.length; ++i)
+		for (int i = 1; i < directories.length-1; ++i)
 		{
 			if (!dirWalk.next(directories[i], true))
 			{
@@ -519,7 +522,7 @@ public:
 
 		string[] directories = split(path, "/");
 		DirectoryWalker dirWalk = new DirectoryWalker();
-		for (int i = 1; i < directories.length; ++i)
+		for (int i = 1; i < directories.length-1; ++i)
 		{
 			if (!dirWalk.next(directories[i]))
 			{
@@ -553,6 +556,22 @@ void zero(void* p, ulong size_in_bytes)
 		ptr[i++] = 0;
 		--size_in_bytes;
 	}
+}
+
+bool strequal(const char[] str1, string str2)
+{
+	int i = 0;
+	foreach (c ; str2)
+	{
+		if (i >= str1.length) return false;
+		if (str1[i] == 0) return false;
+		if (str1[i++] != c)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void strcopy(char[] dest, string src)
