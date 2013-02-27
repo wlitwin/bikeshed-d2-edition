@@ -414,6 +414,39 @@ public:
 			return false;
 		}
 
+		/* Return a listing of everything in the current directory
+		 */
+		DirInfo[] getListing()
+		{
+			DirInfo[] dirInfos = new DirInfo[0];
+
+			Directory* dir = this.dir;
+			uint curCluster = this.curCluster;
+
+			for (int i = 0; i < DIRS_PER_CLUSTER; ++i)
+			{
+				if (dir[i].type != DirectoryType.Free)
+				{
+					// Create a directory info structure
+					dirInfos.length++; // Create space for this item
+					dirInfos[$-1].name = to!string(dir[i].file_name);
+					dirInfos[$-1].isFile = dir[i].type == DirectoryType.File;
+					dirInfos[$-1].size = dir[i].file_size;
+				}
+
+				// Check if there's more to this directory
+				if (i == DIRS_PER_CLUSTER-1
+					&& FAT[curCluster] != ClusterType.End_Of_Chain)
+				{
+					i = 0;
+					curCluster = FAT[curCluster];
+					dir = cast(Directory*)cluster_address(curCluster);
+				}
+			}
+
+			return dirInfos;
+		}
+
 		/* Move back a directory
 		 */
 		void prev()
@@ -477,10 +510,38 @@ public:
 		}
 	}
 
+	DirInfo[] getDirectoyListing(string path)
+	{
+		if (!is_directory_path(path))
+		{
+			throw new Exception("Path is not a directory path: " ~ path);
+		}
+
+		string[] directories = split(path, "/");
+		DirectoryWalker dirWalk = new DirectoryWalker();
+		for (int i = 1; i < directories.length; ++i)
+		{
+			if (!dirWalk.next(directories[i]))
+			{
+				throw new Exception("Directory does not exist");
+			}
+		}
+
+		// Return a listing
+		return dirWalk.getListing();
+	}
+
 	void write(string filename)
 	{
 		io.write(filename, file_system);
 	}
+}
+
+struct DirInfo
+{
+	string name;
+	bool isFile;
+	uint size;
 }
 
 void zero(void* p, ulong size_in_bytes)
