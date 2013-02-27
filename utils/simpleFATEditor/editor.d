@@ -149,7 +149,6 @@ public:
 		do
 		{
 			FAT[prevCluster] = curCluster;
-			FAT[curCluster]  = ClusterType.End_Of_Chain;
 
 			ubyte* fsData = cluster_address(curCluster);
 
@@ -159,9 +158,11 @@ public:
 			}
 			
 			prevCluster = curCluster;
-			curCluster = next_free_fat_index(0);
-			--num_clusters;
-		} while (num_clusters > 0);
+			curCluster = next_free_fat_index(curCluster+1);
+		} while (--num_clusters > 0);
+
+		// Mark the last used cluster as the end of chain
+		FAT[prevCluster] = ClusterType.End_Of_Chain;
 
 		return true;
 	}
