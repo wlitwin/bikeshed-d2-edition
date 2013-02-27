@@ -21,13 +21,18 @@ KERNEL_OBJECTS=$(shell find src/kernel/ -name '*.[dS]' -o -name '*.di' | sed -e 
 # Filtered out in the linker, this must go first in order to boot the kernel
 PRE_KERNEL = obj/src/kernel/pre-kernel.S.o
 
-all: kernel
+all: utils kernel 
 
 clean:
 	/bin/rm -rf $(OBJ_DIR)/*
 	/bin/rm -rf $(OUTPUT_DIR)/*
+	$(MAKE) -C utils clean
 
 bootloader: $(OUTPUT_DIR)/bootloader.b
+
+.PHONY: utils
+utils:
+	$(MAKE) -C utils
 
 fancycat: $(OUTPUT_DIR)/FancyCat
 
@@ -48,15 +53,20 @@ obj/%.di.o : %.di
 obj/%.S.o : %.S
 	$(AS) $(AS_FLAGS) $^ -o $@
 
+bikeshedlib: $(OUTPUT_DIR)/bikeshedlib.a
+
+$(OUTPUT_DIR)/bikeshedlib.a:
+	$(DC) $(D_FLAGS) -lib -Isrc/kernel/runtime src/bikeshed-lib/stdlib.d -of$(OUTPUT_DIR)/bikeshedlib.a
+
 .PHONY: kernel debug
 debug: DBG+=gdb --args	
 
 debug: kernel
 
-kernel: bootloader fancycat $(KERNEL_OBJECTS)
+kernel: bootloader fancycat $(KERNEL_OBJECTS) bikeshedlib
 	$(LD) $(LD_FLAGS) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
 	$(LD) $(LD_FLAGS_DBG) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
-	$(OUTPUT_DIR)/FancyCat 0x200000 $(OUTPUT_DIR)/kernel.b
+	$(OUTPUT_DIR)/FancyCat 0x200000 $(OUTPUT_DIR)/kernel.b 
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
 
