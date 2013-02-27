@@ -129,7 +129,7 @@ public:
 	 *
 	 * data - The data to put into the file system
 	 */
-	private bool fill_data(ubyte[] data, uint cluster)
+	private bool fill_data(ubyte[] data, uint firstCluster)
 	{
 		uint num_clusters = cast(uint)(data.length / cluster_size) + 1;
 
@@ -139,36 +139,30 @@ public:
 		}
 
 		// Get the first free cluster
-		uint firstCluster = next_free_fat_index(0);
+		firstCluster = next_free_fat_index(0);
 
 		// Fill the first clusters space
 		uint dataOffset = 0;
-		ubyte* fsData = cluster_address(firstCluster);	
-		for (uint i = 0; i < boot_record.cluster_size && dataOffset < data.length; ++i)
-		{
-			fsData[i] = data[dataOffset++];	
-		}
-		--num_clusters;
-
-		// Repeat for remaining clusters
 		uint curCluster = firstCluster;
-		while (num_clusters > 0)
+		uint prevCluster = curCluster;
+
+		do
 		{
-			// Copy the file data into the cluster
-			fsData = cluster_address(curCluster);
+			FAT[prevCluster] = curCluster;
+			FAT[curCluster]  = ClusterType.End_Of_Chain;
+
+			ubyte* fsData = cluster_address(curCluster);
+
 			for (uint i = 0; i < boot_record.cluster_size && dataOffset < data.length; ++i)
 			{
 				fsData[i] = data[dataOffset++];	
 			}
-
-			curCluster = next_free_fat_index(curCluster);
+			
+			prevCluster = curCluster;
+			curCluster = next_free_fat_index(0);
 			--num_clusters;
-		}
+		} while (num_clusters > 0);
 
-		// Mark the the last clusters 'next' pointer to EOC
-		FAT[curCluster] = ClusterType.End_Of_Chain;
-
-		cluster = firstCluster;
 		return true;
 	}
 
