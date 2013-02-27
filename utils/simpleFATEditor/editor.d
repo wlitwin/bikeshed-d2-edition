@@ -255,16 +255,16 @@ public:
 
 			// Don't modify the current directory and cluster
 			// until we find a match
-			uint cluster = curCluster;
-			Directory* dir = curDir;
+			uint cluster = this.curCluster;
+			Directory* dir = this.dir;
 			for (int i = 0; i < DIRS_PER_CLUSTER; ++i)
 			{
 				if (dir[i].type == DirectoryType.Directory
-					&& strequal(dir[i].name, name))
+					&& strequal(dir[i].file_name, dirName))
 				{
 					// Change the current directory
-					curCluster = dir[i].cluster;
-					curDir = cast(Directory*) cluster_address(curCluster);
+					this.curCluster= dir[i].cluster;
+					this.dir = cast(Directory*) cluster_address(curCluster);
 					return true;
 				}
 
