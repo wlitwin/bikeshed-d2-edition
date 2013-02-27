@@ -1,6 +1,7 @@
 import editor;
 
 import std.stdio;
+import io = std.file;
 import std.string;
 
 bool ls(Context context, string[] command)
@@ -38,6 +39,28 @@ bool makeDir(Context context, string[] command)
 	return true;
 }
 
+bool insertFile(Context context, string[] command)
+{
+	if (command[0] != "if" ||
+		command.length != 3) return false;
+
+	ubyte[] bytes = cast(ubyte[]) io.read(command[1]);
+
+	context.addFile(command[2], bytes);
+
+	return true;
+}
+
+bool saveFS(Context context, string[] command)
+{
+	if (command[0] != "save"
+		|| command.length != 2) return false;	
+
+	context.write(command[1]);
+
+	return true;
+}
+
 alias bool function(Context context, string[] cmd) CommandFunc;
 
 void main()
@@ -49,6 +72,8 @@ void main()
 	[
 		&ls,
 		&makeDir,
+		&insertFile,
+		&saveFS,
 	];
 
 top:do
