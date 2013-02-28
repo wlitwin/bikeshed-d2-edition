@@ -1,12 +1,12 @@
 DC=dmd
-D_FLAGS=-m32 -gc -Isrc -w -wi -vtls -nofloat
+D_FLAGS=-m32 -Isrc -w -wi -vtls -nofloat
 
 AS=as
 AS_FLAGS=--32 -n32
 
 LD=ld
-LD_FLAGS=-m elf_i386 --gc-sections --oformat=binary
-LD_FLAGS_DBG=-m elf_i386 --gc-sections
+LD_FLAGS=-m elf_i386 --oformat=binary
+#LD_FLAGS_DBG=-m elf_i386 --gc-sections
 
 OUTPUT_DIR=bin
 OBJ_DIR=obj
@@ -38,4 +38,4 @@ debug: kernel
 
 kernel: $(KERNEL_OBJECTS)
 	$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
-#	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
+	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o

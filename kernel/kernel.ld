@@ -11,13 +11,25 @@ SECTIONS {
 		*(.text.*)
 	}
 
+	.ctors ALIGN(0x1000) : {
+		start_of_ctors = .; 
+		*(.ctors) 
+		*(.ctors.*) 
+		end_of_ctors = .;
+	}
+
+	.dtors ALIGN(0x1000) : {
+		start_of_dtors = .; 
+		*(.dtors) 
+		*(.dtors.*) 
+		end_of_dtors = .;
+	}
+
 	.data ALIGN(0x1000) : {
 		data_start = .; __data_start = .;
 		data = .; _data = .; __data = .;
 		*(.data)
 		*(.data.*)
-		start_of_ctors = .; *(.ctors) *(.ctors.*) end_of_ctors = .;
-		start_of_dtors = .; *(.dtors) *(.dtors.*) end_of_dtors = .;
 	}
 
 	.tdata ALIGN(0x1000) : {

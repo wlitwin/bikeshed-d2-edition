@@ -15,7 +15,6 @@ string message = "Hello World! From the D2 Programming language!";
 extern (C) void 
 kmain()
 {
-	asm {mov EAX, 0x12345678; hlt;}
 	put_string(0, 0, message);
 
 	init_serial_debug();
