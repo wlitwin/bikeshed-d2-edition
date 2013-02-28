@@ -5,7 +5,9 @@ nothrow:
 
 struct BootRecord // At cluster 0 of the FAT file system
 {
-	align(1):
+align(1):
+public:
+nothrow:
 	uint root_dir_cluster;  // Cluster of the root directory
 	uint fat_size_clusters; // # of clusters the FAT takes up
 	uint cluster_size;      // Cluster size in bytes
@@ -15,7 +17,9 @@ struct BootRecord // At cluster 0 of the FAT file system
 
 struct Directory
 {
-	align(1):
+align(1):
+public:
+nothrow:
 	char name[112]; // Name of the file or directory
 	DirectoryType type; // Type: File, Directory, Free
 	uint cluster;   // The cluster the contents start at
