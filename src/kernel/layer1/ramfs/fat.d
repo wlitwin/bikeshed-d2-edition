@@ -9,18 +9,27 @@ import kernel.layer0.serial;
 // For string operations
 import kernel.layer1.strfuncs;
 
+import kernel.layer0.memory.iVirtualAllocator;
+import kernel.layer0.memory.memory;
+
 // Implementation of the Simple FAT FS
 // Currently it's read-only
 
 __gshared:
 nothrow:
+public:
 
-private:
+Context context;
+
+void initialize_ramfs(ubyte* location)
+{
+	context.initialize(location);
+}
 
 // Assumes the FS lives in RAM
 struct Context
 {
-private:
+nothrow:
 	BootRecord* boot_record;
 	uint* FAT;
 	ubyte* file_system;
@@ -93,6 +102,8 @@ private:
 
 	struct DirectoryWalker
 	{
+	__gshared:
+	nothrow:
 		uint curCluster;
 		Directory* curDir;
 		Context* context;
@@ -101,6 +112,7 @@ private:
 		{
 			curDir = context.get_root_directory();
 			curCluster = context.boot_record.root_dir_cluster;
+			this.context = context;
 		}
 
 		bool next(const string name)
@@ -137,12 +149,12 @@ private:
 			return false;
 		}
 
-		bool read(const string name,
+		uint read(const string name,
 				  ubyte* data,
 				  uint file_offset,
 				  uint num_bytes)
 		{
-			if (!is_valid_name(name)) return false;
+			if (!is_valid_name(name)) return 0;
 
 			// Don't modify the current directory
 			uint cluster = curCluster;	
@@ -156,7 +168,7 @@ private:
 					// Check to make sure the file offset
 					// is within bounds
 					if (file_offset >= dir[i].file_size) {
-						return false;
+						return 0;
 					}
 
 					// Make sure the num_bytes and file_offset
@@ -178,7 +190,10 @@ private:
 						file_cluster = context.FAT[file_cluster];
 					}
 
-					ubyte* file_data = context.cluster_address(file_cluster) + file_offset;
+					const ubyte* file_data = context.cluster_address(file_cluster) + file_offset;
+
+					// Save the number of bytes actually read so we can return it
+					const uint num_read = num_bytes;
 
 					// Read num_bytes, slow byte copy ... TODO - Faster
 					uint di = 0;
@@ -189,7 +204,7 @@ private:
 						--num_bytes;
 					}
 
-					return true;
+					return num_read;
 				}
 
 				if (i == context.DIRS_PER_CLUSTER-1
@@ -201,49 +216,73 @@ private:
 				}
 			}
 
-			return false;
+			return 0;
 		}
 	}
 	
 public:
-	this(ubyte* location)
+	void initialize(ubyte* location)
 	{
+		// Need to map in the location
+		map_range(cast(uint)location, cast(uint)location+PAGE_SIZE,
+				  cast(uint)location, cast(uint)location+PAGE_SIZE,
+				  PG_READ_WRITE);
+
 		// Grab the boot record and perform some checks
+
 		file_system = location;
-		boot_record = cast(BootRecord*) location;
-	
+		boot_record = cast(BootRecord*) 0x600000;
+
+		serial_outln("FS Size: ", boot_record.file_system_size);
+		serial_outln("Cluster Size: ", boot_record.cluster_size);
+		serial_outln("FAT Entries: ", boot_record.max_fat_entries);
+		serial_outln("FAT Size Clusters: ", boot_record.fat_size_clusters);
+		serial_outln("Root Dir Cluster: ", boot_record.root_dir_cluster);
+
 		// Make sure cluster size is a power of two
 		assert((boot_record.cluster_size & 
 				(boot_record.cluster_size - 1)) == 0,
 				"FAT: Bad cluster size");
+		serial_outln("FS Size: ", boot_record.file_system_size);
+		assert(boot_record.file_system_size > 4*boot_record.cluster_size,
+				"FAT: Bad file system size");
 
 		// Determine how many directories per cluster
 		// Assumes a cluster is always larger than a Directory,
 		// would be kinda hard the other way around...
 		DIRS_PER_CLUSTER = boot_record.cluster_size / Directory.sizeof;
 
+		serial_outln("Dirs per cluster: ", DIRS_PER_CLUSTER);
+
+		// Map the rest of the filesystem
+		uint base = cast(uint)location + PAGE_SIZE;
+		uint max  = cast(uint)location + boot_record.file_system_size;
+		map_range(base, max, base, max, PG_READ_WRITE);
+
 		// The start of the FAT is always at cluster 1
 		FAT = cast(uint*) cluster_address(1);		
 	}
 
-	bool read(string path, ubyte* data, 
+	uint read(string path, ubyte* data, 
 			  uint file_offset, uint num_bytes)
 	{
-		if (!is_file_path(path)) return false;	
+		if (!is_file_path(path)) return 0;
 
 		DirectoryWalker dirWalker;
 		dirWalker.initialize(&this);
 
 		PathWalker pathWalker;
-		pathWalker.initialize(get_directory_path(path));
+		assert(pathWalker.initialize(get_directory_path(path)));
 		const string filename = get_file_name(path);
-		do
+
+		// We do it once to skip the root directory
+		while (pathWalker.nextName())
 		{
 			if (!dirWalker.next(pathWalker.getName()))
 			{
-				return false;
+				return 0;
 			}
-		} while (pathWalker.nextName());
+		}
 
 		return dirWalker.read(filename, data, file_offset, num_bytes);
 	}
