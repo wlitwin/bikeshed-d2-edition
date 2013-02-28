@@ -1,4 +1,4 @@
-DC=../dlibrary/dmd/src/dmd
+DC=dmd
 D_FLAGS=-m32 -w -wi -vtls -nofloat -I./src/ -I./src/runtime/
 
 LD=ld

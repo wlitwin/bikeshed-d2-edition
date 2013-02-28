@@ -1,4 +1,4 @@
-DC=../dlibrary/dmd/src/dmd
+DC=dmd
 D_FLAGS=-m32 -gc -Isrc -w -wi -vtls -nofloat
 
 AS=as
@@ -8,15 +8,15 @@ LD=ld
 LD_FLAGS=-m elf_i386 --gc-sections --oformat=binary
 LD_FLAGS_DBG=-m elf_i386 --gc-sections
 
-OUTPUT_DIR=./bin
-OBJ_DIR=./obj
+OUTPUT_DIR=bin
+OBJ_DIR=obj
 
 # Filled in by debug rule
 DBG=
 
-KERNEL_OBJECTS=$(shell find ./src/ -name '*.[dS]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[dS]\)$$/obj\/\1.o/g')
+KERNEL_OBJECTS=$(shell find src/ -name '*.[dS]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[dS]\)$$/obj\/\1.o/g')
 # Filtered out in the linker, this must go first in order to boot the kernel
-PRE_KERNEL = obj/src/pre-kernel.S.o
+PRE_KERNEL = $(OBJ_DIR)/src/pre-kernel.S.o
 
 all: kernel 
 
@@ -28,9 +28,6 @@ clean:
 obj/%.d.o : %.d
 	$(DBG) $(DC) $(D_FLAGS) -Isrc/runtime -c $^ -of$@
 
-obj/%.di.o : %.di
-	$(DBG) $(DC) $(D_FLAGS) -Isrc/runtime -c $^ -of$@
-
 obj/%.S.o : %.S
 	$(AS) $(AS_FLAGS) $^ -o $@
 
@@ -40,5 +37,5 @@ debug: DBG+=gdb --args
 debug: kernel
 
 kernel: $(KERNEL_OBJECTS)
-	$(LD) $(LD_FLAGS) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
-	$(LD) $(LD_FLAGS_DBG) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
+	$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
+#	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
