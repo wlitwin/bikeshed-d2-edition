@@ -2,6 +2,8 @@ module kernel.layer1.ramfs.path;
 
 import kernel.layer1.strfuncs : index_of, last_index_of;
 
+import kernel.layer0.serial;
+
 // This file contains functions that help determine
 // the validity of strings that are supposed to
 // represent paths to file system files and directories.
@@ -30,7 +32,7 @@ const(string) get_directory_path(const string path)
 
 	if (is_directory_path(path)) return path;
 
-	return path[0..last_index_of(path, '/')];
+	return path[0..last_index_of(path, '/')+1];
 }
 
 /* Determine if a given string is a file path.
@@ -79,16 +81,19 @@ bool is_valid_name(const string name)
 
 struct PathWalker
 {
+__gshared:
+nothrow:
 	string path;
 	string curElement;
 	int curIndex;
 
-	bool initialize(string val)
+	bool initialize(const string val)
 	{
+		serial_outln("checking: ", val);
 		if (!valid_path(val)) return false;
 
 		path = val;
-		curIndex = 0;
+		curIndex = 1;
 		nextName();
 
 		return true;
@@ -101,10 +106,19 @@ struct PathWalker
 
 	bool nextName()
 	{
+		if (curIndex == -1) return false;
+		
 		int first  = index_of(path, curIndex, '/');	
 		int second = index_of(path, first+1, '/');
 
-		if (first == -1 && second == -1) return false;
+		serial_outln("First: ", first, " Second: ", second);
+
+		if (first == -1) 
+		{
+			curIndex = first;
+			curElement = "";
+			return false;
+		}
 
 		if (second == -1)
 		{
