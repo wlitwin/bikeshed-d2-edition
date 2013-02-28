@@ -3,7 +3,7 @@ module kernel.process.scheduler;
 import kernel.layer0.types;
 import kernel.layer0.serial;
 import kernel.layer0.support;
-import kernel.layer0.memory.iVirtualAllocator : switch_page_directory;
+import kernel.layer0.memory.iVirtualAllocator : switch_page_directory, g_kernelTable, free_page_directory;
 
 import kernel.layer1.process.pcb;
 import kernel.layer1.blockallocator;
@@ -23,6 +23,8 @@ public LinkedList!(ProcessControlBlock*) g_pcb_list;
 
 private BlockAllocator!(ProcessControlBlock)* g_pcb_allocator = void;
 
+private ProcessControlBlock* g_idle_pcb;
+
 public void 
 scheduler_initialize()
 {
@@ -31,6 +33,23 @@ scheduler_initialize()
 	g_pcb_allocator = BlockAllocator!(ProcessControlBlock).create_allocator(
 			cast(ProcessControlBlock*)0xD0000000, 
 			cast(ProcessControlBlock*)0xD1000000);
+
+	// Temporary
+	/*
+	g_currentPCB = alloc_pcb();
+	g_currentPCB.pid = next_pid();
+	g_currentPCB.ppid = 0;
+	g_currentPCB.state = State.READY;
+	g_currentPCB.quantum = Quantum.STANDARD;
+	g_currentPCB.priority = Priority.IDLE;
+
+	g_currentPCB.context = 
+
+	if (schedule(g_currentPCB) != Status.SUCCESS)
+	{
+		panic("Could't schedule idle process");
+	}
+	*/
 
 	serial_outln("Scheduler initialized");
 }
@@ -80,6 +99,26 @@ schedule(ProcessControlBlock* pcb)
 	}
 }
 
+// Called by the clock ISR
+public void
+update_pcbs()
+{
+	panic("Scheduler: update_pcbs() not implemented");
+	if (g_currentPCB.quantum < 1)
+	{
+		Status status = schedule(g_currentPCB);
+		if (status != Status.SUCCESS)
+		{
+			cleanup(g_currentPCB);
+		}
+		dispatch();
+	}
+	else
+	{
+		g_currentPCB.quantum--;
+	}
+}
+
 public void
 cleanup(ProcessControlBlock* pcb)
 {
@@ -95,14 +134,12 @@ cleanup(ProcessControlBlock* pcb)
 
 	if (pcb != g_currentPCB)
 	{
-		// TODO - Cleanup PCB's page directory
-		panic("Cleanup NOT IMPLEMENTED!");
+		free_page_directory(pcb.page_directory);
 	}
 	else
 	{
-		// TODO - Cleanup the page directory
-		//      - Switch to the kernel's page directory
-		panic("Cleanup NOT IMPLEMENTED!");
+		free_page_directory(pcb.page_directory);
+		switch_page_directory(g_kernelTable);
 	}
 
 	g_pcb_allocator.free(pcb);
