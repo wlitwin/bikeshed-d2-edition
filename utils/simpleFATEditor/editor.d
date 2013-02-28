@@ -129,7 +129,7 @@ public:
 	 *
 	 * data - The data to put into the file system
 	 */
-	private bool fill_data(ubyte[] data, uint firstCluster)
+	private bool fill_data(ubyte[] data, out uint firstCluster)
 	{
 		uint num_clusters = cast(uint)(data.length / cluster_size) + 1;
 
@@ -390,6 +390,8 @@ public:
 					{
 						return false;
 					}
+
+					assert(fileCluster != 0);
 
 					// Place it here
 					dir[i].type = DirectoryType.File;
