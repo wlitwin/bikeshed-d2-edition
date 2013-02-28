@@ -26,6 +26,8 @@ all: utils kernel
 clean:
 	/bin/rm -rf $(OBJ_DIR)/*
 	/bin/rm -rf $(OUTPUT_DIR)/*
+
+realclean: clean
 	$(MAKE) -C utils clean
 
 bootloader: $(OUTPUT_DIR)/bootloader.b
@@ -66,7 +68,7 @@ debug: kernel
 kernel: bootloader fancycat $(KERNEL_OBJECTS) bikeshedlib
 	$(LD) $(LD_FLAGS) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
 	$(LD) $(LD_FLAGS_DBG) -T ./src/linker_scripts/kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
-	$(OUTPUT_DIR)/FancyCat 0x200000 $(OUTPUT_DIR)/kernel.b 
+	$(OUTPUT_DIR)/FancyCat 0x200000 $(OUTPUT_DIR)/kernel.b 0x600000 myfs
 	mv image.dat $(OUTPUT_DIR)/.
 	cat $(OUTPUT_DIR)/bootloader.b $(OUTPUT_DIR)/image.dat > $(OUTPUT_DIR)/kernel.bin
 
