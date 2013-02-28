@@ -1,0 +1,102 @@
+module kernel.layer1.elf.loader;
+
+import kernel.layer1.elf.def;
+
+import kernel.layer0.types;
+import kernel.layer0.serial;
+import kernel.layer0.support : panic;
+import kernel.layer0.memory.memory;
+import kernel.layer0.memory.iVirtualAllocator;
+
+import kernel.layer1.malloc;
+import kernel.layer1.process.pcb;
+import kernel.layer1.strfuncs;
+import kernel.layer1.ramfs.path;
+import ramfs = kernel.layer1.ramfs.fat;
+
+__gshared:
+nothrow:
+
+Status load_from_file(ProcessControlBlock* pcb, const string filename)
+{
+	// TODO make a generic class allocator
+	string temp = cast(string) kmalloc(filename.length);
+	strcopy(temp, filename);
+
+	serial_outln("ELF: Opening ", filename);
+
+	if (pcb is null || !valid_path(filename))
+	{
+		kfree(temp);
+		return Status.BAD_PARAM;
+	}
+
+	ElfHeader elf_header;
+
+	uint bytes_read = ramfs.Context.read(filename, &elf_header, 0, ElfHeader.sizeof);
+
+	if (bytes_read == 0
+		|| bytes_read < ElfHeader.sizeof
+		|| elf_header.e_magic != ELF_MAGIC_NUM
+		|| elf_header.e_type != ET_EXEC
+		|| elf_header.e_machine != EM_386
+		|| elf_header.e_entry == 0x0
+		|| elf_header.e_version != EV_CURRENT
+		|| elf_header.e_phoff == 0
+		|| elf_header.e_phnum == 0)
+	{
+		panic("ELF: Couldn't load file");
+
+		return BAD_PARAM;
+	}
+
+	if (ElfProgHeader.sizeof != elf_header.e_phentsize)
+	{
+		panic("ELF: program header size is different");
+	}
+
+	uint pheader_table_size = ElfProgHeader.sizeof * elf_header.e_phnum;
+	ElfProgHeader pheaders[pheader_tbl_size];
+
+	bytes_read = ramfs.Context.read(filename, &pheaders[0], elf_header.e_phoff, pheader_table_size);
+
+	if (bytes_read < pheader_table_size)
+	{
+		panic("ELF: Failed to read program headers");
+	}
+
+	// Need to create a new address space - TODO	
+
+	for (int i = 0; i < elf_header.e_phnum; ++i)
+	{
+		ElfProgHeader* cur_pheader = &(pheaders[i]);
+
+		if (cur_pheader.p_type == PT_LOAD)
+		{
+			if (cur_pheader.p_vaddr >= &KERNEL_START || cur_pheader.p_vaddr < 0x100000)
+			{
+				panic("ELF: Program header with a bad address");
+			}
+
+			if (cur_pheader.p_memsz == 0)
+			{
+				// Empty section, skip it
+				continue;
+			}
+
+			uint start_address = cur_pheader.p_vaddr;
+			uint end_address   = start_address + cur_pheader.memsz;
+			for (; start_address < end_address; start_address += PAGE_SIZE)
+			{
+				uint flags = PG_USER;	
+				if ((cur_pheader.p_flags & PF_WRITE) > 0)
+				{
+					flags |= PG_READ_WRITE;
+				}
+
+				// Do the mapping
+				
+			}
+		}
+	}
+}

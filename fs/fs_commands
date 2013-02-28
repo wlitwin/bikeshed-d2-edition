@@ -1,0 +1,2 @@
+if ../user_programs/bin/idle /idle
+save ./bin/myfs
