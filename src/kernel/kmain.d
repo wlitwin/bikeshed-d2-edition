@@ -7,6 +7,8 @@ import kernel.layer1.clock;
 import kernel.layer1.process.scheduler;
 import kernel.layer1.syscall.syscalls;
 
+import kernel.layer1.ramfs.fat;
+
 __gshared:
 string message = "Hello World! From the D2 Programming language!";
 
@@ -27,10 +29,12 @@ kmain()
 	scheduler_initialize();
 	syscalls_initialize();
 
+	initialize_ramfs(cast(ubyte*)0x600000);
+
 	serial_outln("Finished loading the kernel");
 
 	enable_interrupts();
-	
+
 	int val1 = 0;
 	while (true)
 	{
