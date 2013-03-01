@@ -4,6 +4,10 @@ import kernel.layer0.templates;
 import kernel.layer0.support;
 import kernel.layer0.serial;
 
+// A small leak in the abstractions...
+import kernel.layer1.process.scheduler : g_currentPCB;
+import kernel.layer1.process.pcb;
+
 __gshared:
 nothrow:
 
@@ -324,6 +328,9 @@ isr_save()
 		mov EAX, ESP;
 		add EAX, 0;
 		mov g_interruptContext, EAX;
+		// Save the context pointer in the current PCB
+		mov EBX, g_currentPCB;
+		mov [EBX], EAX;
 
 		mov EAX, [ESP + 52]; // ISR number
 		mov EBX, [ESP + 56]; // Error code
@@ -338,12 +345,16 @@ isr_save()
 	}
 }
 
+public
 extern (C) void
 isr_restore()
 {
 	asm
 	{
 		naked;
+
+		mov EBX, g_currentPCB;
+		mov ESP, [EBX]; // Restore the context
 
 		pop SS;
 		pop GS;
