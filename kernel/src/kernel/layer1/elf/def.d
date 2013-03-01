@@ -11,8 +11,16 @@ alias uint   Elf32_Word;
 
 enum EI_NIDENT = 12;
 
+enum ELF_MAGIC_NUM = 0x464C457F; // 0x7F 'E' 'L' 'F' (little endian)
+enum ET_EXEC = 2;
+enum EM_386 = 3;
+enum EV_CURRENT = 1;
+enum PF_WRITE = 2;
+enum PT_LOAD = 1;
+
 struct ElfHeader
 {
+public:
 nothrow:
 	Elf32_Word e_magic;
 	byte e_ident[EI_NIDENT];
@@ -35,6 +43,7 @@ nothrow:
 
 struct ElfSectHeader
 {
+public:
 nothrow:
 	Elf32_Word sh_name;
 	Elf32_Word sh_type;
@@ -50,6 +59,7 @@ nothrow:
 
 struct ElfSymTable
 {
+public:
 nothrow:
 	Elf32_Word st_name;
 	Elf32_Addr st_value;
@@ -61,6 +71,7 @@ nothrow:
 
 struct ElfReloc
 {
+public:
 nothrow:
 	Elf32_Addr r_offset;
 	Elf32_Word r_info;
@@ -68,6 +79,7 @@ nothrow:
 
 struct ElfRelation
 {
+public:
 nothrow:
 	Elf32_Addr  r_offset;
 	Elf32_Word  r_info;
@@ -76,6 +88,7 @@ nothrow:
 
 struct ElfProgHeader
 {
+public:
 nothrow:
 	Elf32_Word p_type;
 	Elf32_Off  p_offset;
