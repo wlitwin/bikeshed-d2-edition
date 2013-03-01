@@ -10,6 +10,7 @@ import kernel.layer0.serial;
 import kernel.layer1.strfuncs;
 
 import kernel.layer0.memory.iVirtualAllocator;
+import kernel.layer0.memory.iPhysicalAllocator;
 import kernel.layer0.memory.memory;
 
 // Implementation of the Simple FAT FS
@@ -125,6 +126,7 @@ nothrow:
 			Directory* dir = curDir;
 			for (int i = 0; i < context.DIRS_PER_CLUSTER; ++i)
 			{
+				serial_outln("On directory: ", dir[i].name);
 				if (dir[i].type == DirectoryType.Directory
 					&& strequal(dir[i].name, name))
 				{
@@ -154,7 +156,12 @@ nothrow:
 				  uint file_offset,
 				  uint num_bytes)
 		{
-			if (!is_valid_name(name)) return 0;
+			serial_outln("Looking for ", cast(string) name);
+			if (!is_valid_name(name)) 
+			{
+				serial_outln("Invalid name", name);
+				return 0;
+			}
 
 			// Don't modify the current directory
 			uint cluster = curCluster;	
@@ -162,12 +169,14 @@ nothrow:
 
 			for (int i = 0; i < context.DIRS_PER_CLUSTER; ++i)
 			{
+				serial_outln("Dir: ", cast(string) dir[i].name);
 				if (dir[i].type == DirectoryType.File
 					&& strequal(dir[i].name, name))
 				{
 					// Check to make sure the file offset
 					// is within bounds
 					if (file_offset >= dir[i].file_size) {
+						serial_outln("File offset too large ", file_offset, " - ", dir[i].file_size);
 						return 0;
 					}
 
@@ -204,6 +213,7 @@ nothrow:
 						--num_bytes;
 					}
 
+					serial_outln("Loaded file ", cast(string) name);
 					return num_read;
 				}
 
@@ -216,6 +226,7 @@ nothrow:
 				}
 			}
 
+			serial_outln("Couldn't find file ", name);
 			return 0;
 		}
 	}
@@ -261,6 +272,8 @@ public:
 
 		// The start of the FAT is always at cluster 1
 		FAT = cast(uint*) cluster_address(1);		
+
+		reserve_region(cast(uint) location, cast(uint) location + boot_record.file_system_size);
 	}
 
 	uint read(string path, ubyte* data, 
@@ -276,12 +289,17 @@ public:
 		const string filename = get_file_name(path);
 
 		// We do it once to skip the root directory
-		while (pathWalker.nextName())
+		if (pathWalker.getName() != "")
 		{
-			if (!dirWalker.next(pathWalker.getName()))
+			do
 			{
-				return 0;
-			}
+				serial_outln("On Directory: ", cast(string) pathWalker.getName());
+				if (!dirWalker.next(pathWalker.getName()))
+				{
+					serial_outln("Couldn't find: ", pathWalker.getName());
+					return 0;
+				}
+			} while (pathWalker.nextName());
 		}
 
 		return dirWalker.read(filename, data, file_offset, num_bytes);
