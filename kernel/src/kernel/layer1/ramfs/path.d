@@ -89,11 +89,11 @@ nothrow:
 
 	bool initialize(const string val)
 	{
-		serial_outln("checking: ", val);
+		serial_outln("checking: ", cast(string) val);
 		if (!valid_path(val)) return false;
 
 		path = val;
-		curIndex = 1;
+		curIndex = 0;
 		nextName();
 
 		return true;
@@ -108,8 +108,8 @@ nothrow:
 	{
 		if (curIndex == -1) return false;
 		
-		int first  = index_of(path, curIndex, '/');	
-		int second = index_of(path, first+1, '/');
+		int first  = index_of(path, curIndex, '/')+1;	
+		int second = index_of(path, first, '/');
 
 		serial_outln("First: ", first, " Second: ", second);
 
@@ -122,11 +122,11 @@ nothrow:
 
 		if (second == -1)
 		{
-			second = path.length-1;
+			second = path.length;
 		}
 
-		curIndex = second;
-		curElement = path[first .. second+1];	
+		curIndex = second+1;
+		curElement = path[first .. second];
 
 		return true;
 	}
