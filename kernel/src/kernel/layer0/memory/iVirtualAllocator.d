@@ -47,6 +47,18 @@ public void switch_page_directory(PageDirectory* pd)
 	}
 }
 
+public PageDirectory* get_page_directory()
+{
+	PageDirectory* pd;
+	asm
+	{
+		mov EAX, CR3;
+		mov pd, EAX;
+	}
+
+	return pd;
+}
+
 public PageDirectory* g_kernelTable;
 
 void initialize(ref MemoryInfo info)
@@ -57,27 +69,27 @@ void initialize(ref MemoryInfo info)
 	serial_outln("VA: Finished");
 }
 
-private uint addr_to_pd_index(virt_addr address)
+public uint addr_to_pd_index(virt_addr address)
 {
 	return address >> 22;	
 }
 
-private virt_addr align_address(virt_addr address)
+public virt_addr align_address(virt_addr address)
 {
 	return address & 0xFFFFF000;
 }
 
-private uint addr_to_pt_index(virt_addr address)
+public uint addr_to_pt_index(virt_addr address)
 {
 	return (address >> 12) & 0x03FF;
 }
 
-private PageDirectory* get_current_page_directory()
+public PageDirectory* get_current_page_directory()
 {
 	return cast(PageDirectory *)0xFFFFF000;
 }
 
-private PageTable* get_page_table(uint index)
+public PageTable* get_page_table(uint index)
 {
 	return cast(PageTable *)(cast(uint*)0xFFC00000 + (0x400 * index));
 }
