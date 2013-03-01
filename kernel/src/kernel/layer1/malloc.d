@@ -79,8 +79,8 @@ public void malloc_initialize()
 	kernel_heap.start_node.prev = null;
 
 	//kmalloc_test_1();
-	void* alloc = kmalloc(1000);
-	kfree(alloc);
+//	void* alloc = kmalloc(1000);
+//	kfree(alloc);
 }
 
 void malloc_info()
