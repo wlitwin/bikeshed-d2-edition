@@ -4,10 +4,10 @@ import kernel.layer0.interrupts;
 import kernel.layer0.memory.memory;
 
 import kernel.layer1.clock;
+import kernel.layer1.malloc;
+import kernel.layer1.ramfs.fat;
 import kernel.layer1.process.scheduler;
 import kernel.layer1.syscall.syscalls;
-
-import kernel.layer1.ramfs.fat;
 
 __gshared:
 string message = "Hello World! From the D2 Programming language!";
@@ -26,27 +26,21 @@ kmain()
 	init_memory();
 
 	// All other modules that depend on linkedlist or memory allocation
-	scheduler_initialize();
 	syscalls_initialize();
 
 	initialize_ramfs(cast(ubyte*)0x600000);
 
+	malloc_initialize();
+
+	scheduler_initialize();
+
 	serial_outln("Finished loading the kernel");
 
-	enable_interrupts();
+	// Interrupts are turned on because EFLAGS gets restored with
+	// the interrupt flag being turned on
+	isr_restore();
 
-	int val1 = 0;
-	while (true)
-	{
-		// Verify that everything is still working
-		int val = 0x12345678;
-		val1 += 1;
-		asm
-		{
-			sti;
-			mov EAX, val;
-			mov EBX, val1;
-			hlt;
-		}
-	}
+	// Wait for the first interrupt, after that we should be
+	// executing the idle process and never return here
+	while (true) { asm { hlt; } }
 }
