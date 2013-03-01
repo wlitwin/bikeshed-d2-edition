@@ -1,3 +1,5 @@
+module kernel.layer1.process.pcb;
+
 import kernel.layer0.interrupts : InterruptContext;
 import kernel.layer0.memory.iVirtualAllocator : PageDirectory;
 
@@ -54,7 +56,7 @@ struct ProcessControlBlock
 public:
 nothrow:
 	// 4-byte fields
-	Context* context;
+	Context* context; // Must be first
 	Stack* stack;
 	Time wakeup;
 	PageDirectory* page_directory;
