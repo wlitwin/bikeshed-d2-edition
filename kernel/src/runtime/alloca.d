@@ -27,21 +27,10 @@ extern (C) void* __alloca(int nbytes)
         push    ESI             ;
     }
 
-    version (OSX)
-    {
-    asm
-    {
-        add     EAX,15          ;
-        and     EAX,0xFFFFFFF0  ; // round up to 16 byte boundary
-    }
-    }
-    else
-    {
     asm
     {
         add     EAX,3           ;
         and     EAX,0xFFFFFFFC  ; // round up to dword
-    }
     }
 
     asm
@@ -54,38 +43,14 @@ extern (C) void* __alloca(int nbytes)
         add     EAX,ESP         ; // EAX is now what the new ESP will be.
         jae     Aoverflow       ;
     }
-    version (Win32)
-    {
-    asm
-    {
-        // We need to be careful about the guard page
-        // Thus, for every 4k page, touch it to cause the OS to load it in.
-        mov     ECX,EAX         ; // ECX is new location for stack
-        mov     EBX,ESI         ; // EBX is size to "grow" stack
-    L1:
-        test    [ECX+EBX],EBX   ; // bring in page
-        sub     EBX,0x1000      ; // next 4K page down
-        jae     L1              ; // if more pages
-        test    [ECX],EBX       ; // bring in last page
-    }
-    }
-    version (DOS386)
-    {
-    asm
-    {
-        // is ESP off bottom?
-        cmp     EAX,_x386_break ;
-        jbe     Aoverflow       ;
-    }
-    }
-    version (Unix)
-    {
+	/*
     asm
     {
         cmp     EAX,_pastdata   ;
         jbe     Aoverflow       ; // Unlikely - ~2 Gbytes under UNIX
     }
-    }
+	*/
+ 
     asm
     {
         // Copy down to [ESP] the temps on the stack.
@@ -113,7 +78,7 @@ extern (C) void* __alloca(int nbytes)
         pop     EDI             ;
         pop     EBX             ;
         ret                     ;
-    }
+	}
   }
   else version (D_InlineAsm_X86_64)
   {
