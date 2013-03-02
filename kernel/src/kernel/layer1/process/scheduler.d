@@ -108,7 +108,7 @@ schedule(ProcessControlBlock* pcb)
 	
 	if (g_ready_queues[p].insert_ordered(pcb, &pcb_priority_compare))
 	{
-		serial_outln("Added to read queue");
+		//serial_outln("Added to read queue");
 		return Status.SUCCESS;
 	}
 	else
@@ -166,7 +166,6 @@ cleanup(ProcessControlBlock* pcb)
 public void
 dispatch()
 {
-	serial_outln("DISPATCH");
 	for (int i = 0; i < g_ready_queues.length; ++i)
 	{
 		do
@@ -189,7 +188,6 @@ dispatch()
 				g_currentPCB.quantum = Quantum.STANDARD;
 				switch_page_directory(g_currentPCB.page_directory);
 
-				serial_outln("Chose pcb");
 				return;
 			}
 			else
