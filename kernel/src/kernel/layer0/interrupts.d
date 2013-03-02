@@ -336,6 +336,8 @@ isr_save()
 		mov  EBX, g_currentPCB;
 		mov  [EBX], EAX;
 
+		// Only grab a word to make sure the 
+		// ISR number stays in the 0-255 range
 		mov  word ptr EAX, [ESP + 52]; // ISR number
 		mov  EBX, [ESP + 56]; // Error code
 
