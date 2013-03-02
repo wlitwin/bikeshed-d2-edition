@@ -77,10 +77,6 @@ public void malloc_initialize()
 	kernel_heap.start_node.size = HEAP_INITIAL_PAGES * PAGE_SIZE;
 	kernel_heap.start_node.next = null;
 	kernel_heap.start_node.prev = null;
-
-	//kmalloc_test_1();
-//	void* alloc = kmalloc(1000);
-//	kfree(alloc);
 }
 
 void malloc_info()
@@ -168,7 +164,6 @@ public void* kmalloc(uint size)
 
 	void* addr = cast(void *)(cast(uint)current_node + HEADER_SIZE);
 
-	serial_outln("Allocating: ", addr);
 	return addr;
 }
 
@@ -200,8 +195,6 @@ public void* kcalloc(uint size)
 
 public void kfree(void* address)
 {
-	serial_outln("Freeing: ", address);
-
 	// Do nothing if we've been given a bad value
 	if (address < kernel_heap.start_address || address > kernel_heap.end_address)
 	{
