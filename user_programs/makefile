@@ -1,5 +1,5 @@
 DC=dmd
-D_FLAGS=-m32 -w -wi -vtls -nofloat -I./src/ -I./src/runtime/
+D_FLAGS=-m32 -w -vtls -nofloat -I./src/ -I./src/runtime/
 
 LD=ld
 LD_FLAGS=-m elf_i386 --gc-sections 
