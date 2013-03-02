@@ -1,6 +1,8 @@
 __gshared:
 nothrow:
 
+import bikeshedlib.stdlib;
+
 enum video_address = 0xB8000;
 
 VideoCell* video = cast(VideoCell*) video_address;
@@ -22,25 +24,46 @@ rand()
 	return (m_z << 16) + m_w;
 }
 
-void put_char(int x, int y, byte c) nothrow
+void put_char(int x, int y, byte c)
 {
 	video[x + y*80].color = 0x9;
 	video[x + y*80].c = c;
 }
 
+int printNum(uint number, int x, int y)
+{
+	if (number == 0)
+	{
+		return x;
+	}
+
+	int pos = printNum(number/10, x, y);
+
+	put_char(pos, y, '0' + (number % 10));
+
+	return pos+1;	
+}	
+
 void main()
 {
+	uint priority = get_priority();
+
 	video[0].color = 0x9;
 
 	while (true)
 	{
-		for (int y = 0; y < 25; ++y)
+		for (int y = 1; y < 25; ++y)
 		{
 			for (int x = 0; x < 80; ++x)
 			{
 				put_char(x, y, rand() % 26 + 'A');
 			}
 		}
+		// Print the number in the top right
+		printNum(priority, 0, 0);
+		// Get the time
+		uint time = get_time();
+		printNum(time, 10, 0);
 		asm { hlt; }
 	}
 }
