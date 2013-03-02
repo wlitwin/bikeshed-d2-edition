@@ -2,8 +2,6 @@ module kernel.layer1.linkedlist;
 
 import kernel.layer1.malloc;
 
-import kernel.layer0.serial;
-
 // A quick note - This linked list will deallocate the entire LinkedNode when
 // removing something from the list. This means if T is not a pointer or a
 // simple copyable type then it will be invalid memory.
@@ -30,10 +28,8 @@ nothrow:
 
 	void init()
 	{
-		serial_outln("LINKED LIST INITIALIZED");
 		head = tail = null;
 		size = 0;
-		serial_outln("Size: ", size, " Head: ", cast(uint)head, " Tail: ", cast(uint) tail);
 	}
 
 	bool append(ref T val)
@@ -140,8 +136,6 @@ nothrow:
 		}
 
 		new_node.data = val;
-
-		serial_outln("Size: ", size, " Head: ", cast(uint)head, " Tail: ", cast(uint) tail);
 
 		if (empty())
 		{
