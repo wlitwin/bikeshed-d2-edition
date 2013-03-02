@@ -8,10 +8,7 @@ import kernel.layer1.process.scheduler : update_pcbs;
 __gshared:
 nothrow:
 
-public uint system_time;
-
-int pin_wheel = 0;
-int p_index = 0;
+public uint system_time = 0;
 
 enum TIMER_BASE_PORT = 0x40; // I/O Port for the timer
 
@@ -50,14 +47,6 @@ isr_clock(int vector, int code)
 {
 	//serial_outln("Timer interrupt");
 	++system_time;
-
-	++pin_wheel;
-	if (pin_wheel == (CLOCK_FREQUENCY / 10))
-	{
-		pin_wheel = 0;
-		++p_index;				
-		put_char(79, 0, "|/-\\"[p_index & 3]);
-	}
 
 	// In the scheduler
 	update_pcbs();
