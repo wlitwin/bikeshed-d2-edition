@@ -1,5 +1,8 @@
 module bikeshedlib.stdlib;
 
+__gshared:
+nothrow:
+
 enum INT_SYS_CALL = 0x80;
 
 enum Syscalls : uint
@@ -33,7 +36,7 @@ enum Status : uint
 	STATUS_SENTINEL,
 }
 
-extern (D):
+extern (C):
 
 Status fork() 
 {
@@ -55,11 +58,41 @@ void exec()
 	}
 }
 
-void get_pid()
+uint get_pid()
 {
 	asm {
 		naked;
 		mov EAX, Syscalls.GET_PID;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+uint get_priority()
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.GET_PRIORTY;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+uint get_time()
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.GET_TIME;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+uint get_ppid()
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.GET_PPID;
 		int INT_SYS_CALL;
 		ret;
 	}
