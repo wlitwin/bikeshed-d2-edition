@@ -1,12 +1,12 @@
 DC=dmd
-D_FLAGS=-m32 -Isrc -w -wi -vtls -nofloat
+D_FLAGS=-m32 -Isrc -w -vtls -nofloat
 
 AS=as
 AS_FLAGS=--32 -n32
 
 LD=ld
 LD_FLAGS=-m elf_i386 --oformat=binary
-#LD_FLAGS_DBG=-m elf_i386 --gc-sections
+LD_FLAGS_DBG=-m elf_i386
 
 OUTPUT_DIR=bin
 OBJ_DIR=obj
