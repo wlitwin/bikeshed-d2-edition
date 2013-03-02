@@ -8,6 +8,20 @@ pre_kernel:
 	movl $(0x200000-0x4), %esp
 	movl %esp, %ebp
 
+	# Clear out the BSS, probably a good idea
+	movl $sbss, %eax
+	movl $ebss, %ecx
+	subl %eax, %ecx
+
+zero_loop:
+	cmpl $0, %ecx
+	jle done_zeroing
+	movl $0, (%eax)
+	addl $4, %eax
+	subl $4, %ecx
+	jmp zero_loop
+done_zeroing:
+
 	# Call all of the constructors
 	movl $start_of_ctors, %ebx
 	jmp check_end_ctors
