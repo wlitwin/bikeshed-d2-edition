@@ -16,8 +16,8 @@ nothrow:
 // Similarly to get the address of the start of the
 // kernel take the address of KERNEL_START.
 // TODO - virtual or physical addresses?
-extern(C) int KERNEL_END;   // Assumed to be aligned to 4-byte boundary
-extern(C) int KERNEL_START;
+private extern(C) int KERNEL_END;   // Assumed to be aligned to 4-byte boundary
+private extern(C) int KERNEL_START;
 
 enum PAGE_SIZE = 4096;
 
