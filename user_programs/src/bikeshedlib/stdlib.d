@@ -5,6 +5,27 @@ nothrow:
 
 enum INT_SYS_CALL = 0x80;
 
+alias ushort Pid;
+
+enum Priority : ubyte
+{
+	HIGH = 0,
+	STANDARD,
+	LOW,
+	IDLE,
+};
+
+enum State : ubyte
+{
+	FREE = 0,
+	NEW,
+	READY,
+	RUNNING,
+	SLEEPING,
+	BLOCKED,
+	KILLED,
+};
+
 enum Syscalls : uint
 {
 	FORK = 0,
@@ -38,7 +59,7 @@ enum Status : uint
 
 extern (C):
 
-Status fork() 
+Status fork(Pid* pid) 
 {
 	asm {
 		naked;
@@ -68,11 +89,41 @@ uint get_pid()
 	}
 }
 
-uint get_priority()
+uint get_ppid()
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.GET_PPID;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+State get_state()
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.GET_STATE;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+Priority get_priority()
 {
 	asm {
 		naked;
 		mov EAX, Syscalls.GET_PRIORTY;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+Status msleep(uint time)
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.MSLEEP;
 		int INT_SYS_CALL;
 		ret;
 	}
@@ -88,11 +139,11 @@ uint get_time()
 	}
 }
 
-uint get_ppid()
+Status set_time(uint time)
 {
 	asm {
 		naked;
-		mov EAX, Syscalls.GET_PPID;
+		mov EAX, Syscalls.SET_TIME;
 		int INT_SYS_CALL;
 		ret;
 	}
