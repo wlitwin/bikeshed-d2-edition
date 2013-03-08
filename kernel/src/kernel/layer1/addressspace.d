@@ -20,7 +20,7 @@ PageDirectory* new_address_space()
 	uint lo_pd_1mb = 0;
 	uint hi_pd_1mb = addr_to_pd_index(0x100000); 
 
-	uint lo_pd_kern = addr_to_pd_index(KERNEL_START);
+	uint lo_pd_kern = addr_to_pd_index(g_memoryInfo.kernel_start);
 	uint hi_pd_kern = 1023;//addr_to_pd_index(KERNEL_END);
 
 	// Disable paging
