@@ -73,7 +73,7 @@ alias bool function(Context context, string[] cmd) CommandFunc;
 void main()
 {
 	// 4KiB clusters, 1MiB total space
-	Context context = new Context(4096, 1048576);	
+	Context context = new Context(4096, 102400);
 
 	static CommandFunc[] commands = 
 	[
