@@ -1,3 +1,5 @@
+module kernel.layer1.clock;
+
 import kernel.layer0.vga;
 import kernel.layer0.serial;
 import kernel.layer0.support;
