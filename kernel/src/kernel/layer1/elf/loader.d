@@ -70,8 +70,8 @@ Status load_from_file(ProcessControlBlock* pcb, string filename)
 		if (cur_pheader.p_type == PT_LOAD)
 		{
 			// TODO - Update later for when the kernel is put in the higher half
-			if ((cur_pheader.p_vaddr >= cast(uint)&KERNEL_START 
-						&& cur_pheader.p_vaddr < cast(uint)&KERNEL_END) 
+			if ((cur_pheader.p_vaddr >= g_memoryInfo.kernel_start
+						&& cur_pheader.p_vaddr < g_memoryInfo.kernel_end)
 					|| cur_pheader.p_vaddr < 0x100000)
 			{
 				panic("ELF: Program header with a bad address");
