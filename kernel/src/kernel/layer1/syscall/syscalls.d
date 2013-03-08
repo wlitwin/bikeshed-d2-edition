@@ -77,8 +77,9 @@ isr_syscall(int vector, int code)
 	}
 
 	uint syscall_number = RET(g_currentPCB);
-	if (syscall_number >= Syscalls.max)
+	if (syscall_number >= Syscalls.max+1)
 	{
+		serial_outln("BAD SYSCALL ", syscall_number);
 		// Bad system call, kill the process
 		syscall_number = Syscalls.EXIT;
 	}
@@ -164,7 +165,34 @@ void sys_exit(ProcessControlBlock* pcb)
 
 void sys_msleep(ProcessControlBlock* pcb)
 {
-	pcb.context.EAX = Status.FEATURE_UNIMPLEMENTED;
+	uint sleep_time = ARG(pcb)[1];
+	
+	if (sleep_time == 0)
+	{
+		// Pre-empt this process and let someone else go
+		Status status = schedule(pcb);
+		if (status != Status.SUCCESS)
+		{
+			// Couldn't reschedule for some reason
+			pcb.context.EAX = Status.FAILURE;
+			return;
+		}
+	}
+	else
+	{
+		// Put it on the sleep queue
+		pcb.wakeup = system_time + sleep_time;
+		Status status = add_to_sleep_queue(pcb);
+		if (status != Status.SUCCESS)
+		{
+			// Couldn't put this process to sleep
+			pcb.context.EAX = Status.FAILURE;
+			return;
+		}
+	}
+
+	pcb.context.EAX = Status.SUCCESS;
+	dispatch();
 }
 
 void sys_read(ProcessControlBlock* pcb)
