@@ -204,6 +204,12 @@ nothrow:
 		return true;
 	}
 
+	bool remove_front()
+	{
+		T unused;
+		return remove_front(unused);
+	}
+
 	bool remove_front(out T outval)
 	{
 		if (empty())
