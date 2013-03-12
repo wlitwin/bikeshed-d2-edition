@@ -30,10 +30,19 @@ void put_char(int x, int y, byte c)
 	video[x + y*80].c = c;
 }
 
+void put_string(string s, int x, int y)
+{
+	foreach (c ; s)
+	{
+		put_char(x++, y, c);
+	}
+}
+
 int printNum(uint number, int x, int y)
 {
 	if (number == 0)
 	{
+		put_char(x, y, '0');
 		return x;
 	}
 
@@ -47,8 +56,26 @@ int printNum(uint number, int x, int y)
 void main()
 {
 	uint priority = get_priority();
+	uint proc_id = get_pid();
 
 	video[0].color = 0x9;
+
+	set_time(500000);
+
+	printNum(proc_id, 79, 0);
+
+	Pid pid;
+	if (fork(&pid) != Status.SUCCESS)
+	{
+		put_string("Fork Failed", 0, 0);
+		while (true) asm {hlt;}
+	}
+
+	if (pid == 0)
+	{
+		set_priority(Priority.HIGH);
+		exec("/test1");
+	}
 
 	while (true)
 	{
