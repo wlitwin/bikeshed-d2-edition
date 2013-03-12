@@ -69,7 +69,7 @@ Status fork(Pid* pid)
 	}
 }
 
-void exec()
+void exec(string file)
 {
 	asm {
 		naked;
@@ -104,6 +104,16 @@ State get_state()
 	asm {
 		naked;
 		mov EAX, Syscalls.GET_STATE;
+		int INT_SYS_CALL;
+		ret;
+	}
+}
+
+void set_priority(Priority prio)
+{
+	asm {
+		naked;
+		mov EAX, Syscalls.SET_PRIORITY;
 		int INT_SYS_CALL;
 		ret;
 	}
