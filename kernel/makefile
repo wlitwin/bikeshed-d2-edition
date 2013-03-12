@@ -25,10 +25,10 @@ clean:
 	/bin/rm -rf $(OUTPUT_DIR)/*
 
 # TODO Separate the runtime compilation from the kernels compilation
-obj/%.d.o : %.d
+$(OBJ_DIR)/%.d.o : %.d
 	$(DBG) $(DC) $(D_FLAGS) -Isrc/runtime -c $^ -of$@
 
-obj/%.S.o : %.S
+$(OBJ_DIR)/%.S.o : %.S
 	$(AS) $(AS_FLAGS) $^ -o $@
 
 .PHONY: kernel debug
