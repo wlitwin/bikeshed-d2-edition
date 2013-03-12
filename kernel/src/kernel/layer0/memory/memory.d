@@ -106,7 +106,7 @@ detect_memory()
 	*/
 
 	// Loop through all the entries
-	g_memoryInfo.kernel_start = cast(uint) &KERNEL_START;
+	g_memoryInfo.kernel_start = STACK_MIN_LOC;//cast(uint) &KERNEL_START;
 	// The memory map starts at the current end of the kernel
 	g_memoryInfo.kernel_end = cast(uint) (get_mmap_start() + get_mmap_count());
 
