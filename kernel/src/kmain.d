@@ -36,6 +36,12 @@ kmain()
 
 	serial_outln("Finished loading the kernel");
 
+	// Save the current kernel stack
+	asm
+	{
+		mov kernel_stack, ESP;
+	}
+
 	// Interrupts are turned on because EFLAGS gets restored with
 	// the interrupt flag being turned on
 	isr_restore();
