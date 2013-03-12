@@ -19,8 +19,6 @@ nothrow:
 
 Status load_from_file(ProcessControlBlock* pcb, string filename)
 {
-	// Copy the filename over	
-
 	serial_outln("ELF: Loading ", filename);
 
 	if (pcb is null || filename is null)
