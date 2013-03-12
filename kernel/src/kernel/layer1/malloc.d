@@ -1,11 +1,13 @@
 module kernel.layer1.malloc;
 
-import kernel.layer0.memory.memory : PAGE_SIZE;
+import kernel.layer0.memory.memory : g_memoryInfo, PAGE_SIZE;
 import physAllocator = kernel.layer0.memory.iPhysicalAllocator;
 import kernel.layer0.memory.util;
 import virtAllocator = kernel.layer0.memory.iVirtualAllocator;
 import kernel.layer0.memory.iVirtualAllocator : virt_addr, PG_READ_WRITE, PG_PRESENT;
 import kernel.layer0.support;
+
+import kernel.layer0.serial;
 
 __gshared:
 private:
@@ -32,8 +34,8 @@ Heap kernel_heap = void;
 
 enum HEAP_INITIAL_PAGES = 2;
 
-enum HEAP_START_LOCATION = 0xD1000000;
-enum HEAP_MAX_LOCATION   = 0xE0000000;
+//enum HEAP_START_LOCATION = 0xD1000000;
+//enum HEAP_MAX_LOCATION   = 0xE0000000;
 
 extern (C)
 public void* malloc(uint size)
@@ -61,6 +63,12 @@ public void free(void* ptr)
 
 public void malloc_initialize()
 {
+	const uint HEAP_START_LOCATION = (g_memoryInfo.kernel_end & 0xFFFFF000) + PAGE_SIZE;
+	const uint HEAP_MAX_LOCATION = HEAP_START_LOCATION + 0x100000;
+
+	// Fix the kernel's end position
+	g_memoryInfo.kernel_end = HEAP_MAX_LOCATION;
+
 	kernel_heap.start_address = cast(void *) HEAP_START_LOCATION;
 	kernel_heap.max_address   = cast(void *) HEAP_MAX_LOCATION;
 
