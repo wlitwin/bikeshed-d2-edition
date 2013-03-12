@@ -311,6 +311,7 @@ __default_unexpected_handler(int vector, int code)
 //=============================================================================
 // This section of code will hopefully be replaced by a template/mixin
 //=============================================================================
+public uint kernel_stack;
 
 extern (C) void
 isr_save()
@@ -339,7 +340,10 @@ isr_save()
 		// Only grab a word to make sure the 
 		// ISR number stays in the 0-255 range
 		mov  word ptr EAX, [ESP + 52]; // ISR number
-		mov  EBX, [ESP + 56]; // Error code
+		mov  word ptr EBX, [ESP + 56]; // Error code
+
+		// Switch to the system stack
+		mov ESP, kernel_stack;
 
 		push  EBX;
 		push  EAX;
