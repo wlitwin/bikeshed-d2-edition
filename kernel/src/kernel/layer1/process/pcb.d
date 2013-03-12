@@ -45,7 +45,7 @@ enum Priority : ubyte
 	IDLE,
 };
 
-private Pid current_pid = 1;
+private Pid current_pid = 0;
 public Pid next_pid()
 {
 	return ++current_pid;
