@@ -3,6 +3,7 @@ module kernel.layer1.process.scheduler;
 import kernel.layer0.types;
 import kernel.layer0.serial;
 import kernel.layer0.support;
+import kernel.layer0.memory.memory : g_memoryInfo, PAGE_SIZE;
 import kernel.layer0.memory.iVirtualAllocator : switch_page_directory, g_kernelTable, free_page_directory;
 
 import kernel.layer1.process.pcb;
@@ -10,6 +11,7 @@ import kernel.layer1.blockallocator;
 import kernel.layer1.linkedlist;
 import kernel.layer1.elf.loader;
 import kernel.layer1.addressspace;
+import kernel.layer1.clock : system_time;
 
 __gshared:
 nothrow:
@@ -22,6 +24,7 @@ private alias LinkedList!(ProcessControlBlock*) ReadyQueue;
 private ReadyQueue[NUMBER_OF_READY_QUEUES] g_ready_queues;
 
 public LinkedList!(ProcessControlBlock*) g_pcb_list;
+public LinkedList!(ProcessControlBlock*) g_sleep_queue;
 
 private BlockAllocator!(ProcessControlBlock)* g_pcb_allocator = void;
 
@@ -32,9 +35,16 @@ scheduler_initialize()
 {
 	g_currentPCB = null;
 
+	const uint PCB_ALLOCATOR_START = (g_memoryInfo.kernel_end & 0xFFFFF000) + PAGE_SIZE;
+	const uint PCB_ALLOCATOR_END   = PCB_ALLOCATOR_START + 0x100000;
+
+	// Update the kernel's end location
+	g_memoryInfo.kernel_end = PCB_ALLOCATOR_END;
+	serial_outln("NEW KERNEL END: ", g_memoryInfo.kernel_end);
+
 	g_pcb_allocator = BlockAllocator!(ProcessControlBlock).create_allocator(
-			cast(ProcessControlBlock*)0xD0000000, 
-			cast(ProcessControlBlock*)0xD1000000);
+			cast(ProcessControlBlock*)PCB_ALLOCATOR_START,
+			cast(ProcessControlBlock*)PCB_ALLOCATOR_END);
 
 	// Need to make sure constructors work
 	g_pcb_list.init();
@@ -43,7 +53,7 @@ scheduler_initialize()
 		g_ready_queues[i].init();
 	}
 
-	g_currentPCB = alloc_pcb();
+	g_idle_pcb = g_currentPCB = alloc_pcb();
 	g_currentPCB.pid = next_pid();
 	g_currentPCB.ppid = 0;
 	g_currentPCB.state = State.READY;
@@ -61,12 +71,13 @@ scheduler_initialize()
 		panic("ELF: Didn't load properly");
 	}
 
+	//switch_page_directory(g_kernelTable);
+
 	if (schedule(g_currentPCB) != Status.SUCCESS)
 	{
 		panic("Could't schedule idle process");
 	}
 
-	//switch_page_directory(g_kernelTable);
 
 	serial_outln("Scheduler initialized");
 }
@@ -85,9 +96,9 @@ free_pcb(ProcessControlBlock* pcb)
 }
 */
 
-private bool pcb_priority_compare(ProcessControlBlock* pcb1, ProcessControlBlock* pcb2)
+private bool pcb_sleep_compare(ProcessControlBlock* pcb1, ProcessControlBlock* pcb2)
 {
-	return pcb1.priority < pcb2.priority;
+	return pcb1.wakeup < pcb2.wakeup;
 }
 
 public Status 
@@ -106,7 +117,7 @@ schedule(ProcessControlBlock* pcb)
 
 	pcb.state = State.READY;
 	
-	if (g_ready_queues[p].insert_ordered(pcb, &pcb_priority_compare))
+	if (g_ready_queues[p].append(pcb))
 	{
 		//serial_outln("Added to read queue");
 		return Status.SUCCESS;
@@ -117,10 +128,56 @@ schedule(ProcessControlBlock* pcb)
 	}
 }
 
+public Status
+add_to_sleep_queue(ProcessControlBlock* pcb)
+{
+	if (pcb == null)
+	{
+		panic("Add Sleep Queue: Got NULL pcb!");
+		return Status.BAD_PARAM;
+	}
+
+	if (g_sleep_queue.insert_ordered(pcb, &pcb_sleep_compare))
+	{
+		pcb.state = State.SLEEPING;
+		return Status.SUCCESS;
+	}
+	else
+	{
+		return Status.FAILURE;
+	}
+}
+
+
 // Called by the clock ISR
 public void
 update_pcbs()
 {
+	// Check for sleeping processes that need to be awakened
+	do
+	{
+		ProcessControlBlock* head = g_sleep_queue.front();
+		if (head == null || head.wakeup > system_time) {
+			break;
+		}
+
+		// We need to wake this one up
+		if (!g_sleep_queue.remove_front())
+		{
+			panic("Failed to remove from sleep queue!");
+		}
+
+		// Reset the wakeup time just in case
+		head.wakeup = 0;
+
+		// Schedule it
+		if (schedule(head) != Status.SUCCESS)
+		{
+			// TODO - Kill the process?
+			panic("Failed to schedule awakened process");
+		}
+	} while (true);
+
 	if (g_currentPCB.quantum < 1)
 	{
 		Status status = schedule(g_currentPCB);
@@ -145,7 +202,21 @@ cleanup(ProcessControlBlock* pcb)
 		return;
 	}
 
-	pcb.state = State.FREE;
+	// Remove it from the ready or sleep queues
+	switch (pcb.state)
+	{
+		case State.SLEEPING:
+			g_sleep_queue.remove(pcb);
+			break;
+		case State.RUNNING:
+			g_ready_queues[pcb.priority].remove(pcb);
+			break;
+		default:
+			break;
+	}
+
+	// TODO Free state unnecessary
+	pcb.state = State.KILLED;
 
 	// Remove it from the global list
 	g_pcb_list.remove(pcb);
