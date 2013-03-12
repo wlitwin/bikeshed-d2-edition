@@ -1,5 +1,5 @@
 DC=dmd
-D_FLAGS=-m32 -w -vtls -nofloat -I./src/ -I./src/runtime/
+D_FLAGS=-m32 -w -vtls -nofloat -I./src/ -I./src/runtime/ -noboundscheck
 
 LD=ld
 LD_FLAGS=-m elf_i386 --gc-sections 
@@ -26,5 +26,7 @@ startup: bikeshedlib
 
 idle: startup
 	$(DC) $(D_FLAGS) -c ./src/idle/idle.d -of./$(OBJ_DIR)/idle/idle.o
+	$(DC) $(D_FLAGS) -c ./src/test1/test1.d -of./$(OBJ_DIR)/test1/test1.o
 	$(LD) $(LD_FLAGS) -T./linker.ld $(OBJ_DIR)/startup.o $(OBJ_DIR)/stdlib.o ./$(OBJ_DIR)/idle/idle.o -o ./$(OUTPUT_DIR)/idle
+	$(LD) $(LD_FLAGS) -T./linker.ld $(OBJ_DIR)/startup.o $(OBJ_DIR)/stdlib.o ./$(OBJ_DIR)/test1/test1.o -o ./$(OUTPUT_DIR)/test1
 
