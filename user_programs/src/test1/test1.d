@@ -9,11 +9,11 @@ void main()
 {
 	int counter = 0;
 	uint _pid = cast(uint)get_pid();
-	//while (true)
+	while (true)
 	{
 		printNum(counter++, 70+_pid, 0);
 		msleep(100);
-	//	asm { hlt; }
+		asm { hlt; }
 	}
 }
 
