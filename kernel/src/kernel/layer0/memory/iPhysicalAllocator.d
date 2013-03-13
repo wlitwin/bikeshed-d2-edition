@@ -32,6 +32,8 @@ initialize(ref MemoryInfo info)
 			// Found it!
 			initialized = true;
 			bitmap.initialize(cast(uint*) mmap.start, info.max_mem_address);
+			info.kernel_end = mmap.start + bitmap_size;
+			break;
 		}
 	}
 
