@@ -2,6 +2,7 @@ import kernel.layer1.linkedlist;
 import kernel.layer1.process.pcb;
 import kernel.layer1.process.scheduler;
 import kernel.layer1.clock : system_time;
+import kernel.layer1.elf.loader : load_from_file;
 
 import kernel.layer0.interrupts;
 import kernel.layer0.support;
@@ -9,6 +10,8 @@ import kernel.layer0.serial;
 import kernel.layer0.types;
 import kernel.layer0.memory.util;
 import kernel.layer0.memory.iVirtualAllocator;
+
+import glue : alloca;
 
 __gshared:
 nothrow:
@@ -109,6 +112,7 @@ void sys_fork(ProcessControlBlock* pcb)
 	new_pcb.pid = next_pid();
 	new_pcb.ppid = pcb.pid;
 	new_pcb.state = State.NEW;
+	new_pcb.priority = Priority.HIGH;
 
 	// Assign the PID return values for the two processes
 	uint* ptr = cast(uint*)ARG(pcb)[1];	
@@ -123,6 +127,7 @@ void sys_fork(ProcessControlBlock* pcb)
 
 	// Switch the page directory
 	switch_page_directory(new_pcb.page_directory);
+
 	ptr = cast(uint*)ARG(new_pcb)[1];
 	*ptr = 0;
 
@@ -151,7 +156,44 @@ void sys_fork(ProcessControlBlock* pcb)
 
 void sys_exec(ProcessControlBlock* pcb)
 {
-	pcb.context.EAX = Status.FEATURE_UNIMPLEMENTED;
+	// Need to copy the string to the kernel stack
+	string* file = cast(string*) (&ARG(pcb)[1]);
+	serial_outln("File: ", *file, " Length: ", file.length);
+	if (file.length > 200)
+	{
+		pcb.context.EAX = Status.BAD_PARAM;
+		return;
+	}
+
+	serial_outln("File size: ", file.sizeof);
+
+	// Copy the string onto the local stack
+	struct Str
+	{
+		uint length;
+		char* ptr;
+	}
+
+	Str str;
+	str.length = file.length;
+	str.ptr = cast(char*) alloca(file.length)[0..file.length];
+
+	for (uint i = 0; i < str.length; ++i)
+	{
+		str.ptr[i] = file.ptr[i];
+		serial_outln(str.ptr[i]);
+	}
+
+	string* s = cast(string*) &str;
+	serial_outln("Str: ", *s, " Length: ", s.length);
+
+	reset_page_directory();
+	if (load_from_file(pcb, *s) != Status.SUCCESS)
+	{
+		panic("Exec failed");
+	}
+
+	pcb.context.EAX = Status.SUCCESS;
 }
 
 void sys_exit(ProcessControlBlock* pcb)
