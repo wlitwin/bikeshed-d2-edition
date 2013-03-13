@@ -106,6 +106,36 @@ void map_range(virt_addr v_low, const virt_addr v_hi,
 	}
 }
 
+void map_absolute(const phys_addr p_addr, const virt_addr v_addr, uint permissions)
+{
+	PageDirectory* pd = get_current_page_directory();
+	uint pg_dir_index = addr_to_pd_index(v_addr);
+	uint pg_tbl_index = addr_to_pt_index(v_addr);
+
+	PageTable* page_table = get_page_table(pg_dir_index);
+
+	if ((pd.tables[pg_dir_index] & PG_PRESENT) == 0)
+	{
+		// Need to allocate a page table
+		uint phys_page_table = cast(uint)physAllocator.allocate_page();
+		pd.tables[pg_dir_index] = phys_page_table | 3;
+
+		memclr(cast(void *)page_table, PAGE_SIZE);
+	}
+
+	page_table.addrs[pg_tbl_index] = p_addr | (permissions & 0xFFF) | PG_PRESENT;
+
+	// Flush the TLB
+	uint pd_asm = cast(uint)pd & 0xFFFFF000;
+	uint pt_asm = cast(uint)page_table & 0xFFFFF000;
+	asm
+	{
+		invlpg v_addr;
+		invlpg pt_asm;
+		invlpg pd_asm;
+	}
+}
+
 void map_range(phys_addr p_lo, const phys_addr p_hi,
 			   virt_addr v_lo, const virt_addr v_hi,
 			   const uint permissions)
@@ -137,7 +167,7 @@ void map_range(phys_addr p_lo, const phys_addr p_hi,
 
 		if (page_table.addrs[pg_tbl_index] != 0)
 		{
-			panic("VA: map_range - address is already mapped!");
+			assert(false, "VA: map_range - address is already mapped!");
 		}
 
 		page_table.addrs[pg_tbl_index] = p_lo | (permissions & 0xFFF) | PG_PRESENT;
@@ -159,11 +189,128 @@ void map_range(phys_addr p_lo, const phys_addr p_hi,
 
 public PageDirectory* clone_page_directory()
 {
-// PageDirectory* new_pd = cast(PageDirectory*) physAllocator.allocate_page();	
-// TODO - Map the new_pd back to itself 
-// PageDirectory* cur_pd = get_current_page_directory();
+	PageDirectory* pd = get_current_page_directory();
 
-	assert(false, "VA: clone_page_directory() not implemented");
+	const uint scratch_pd_address  = 0x100000 - PAGE_SIZE;
+	const uint scratch_pt_address  = 0x100000 - PAGE_SIZE*2;
+	const uint scratch_pte_address = 0x100000 - PAGE_SIZE*3;
+
+	// We're going to do most of the copying with paging on for
+	// easiness. This means we need have some scratch space to
+	// copy data from this address space into the new one. We'll
+	// temporarily unmap some of the pages below 1MiB and then
+	// remap them.
+	PageDirectory* scratch_pd = cast(PageDirectory*) scratch_pd_address;
+	PageTable* scratch_pt = cast(PageTable*) scratch_pt_address;
+	uint* scratch_pte = cast(uint*) scratch_pte_address;
+
+	// A little helper function to map some memory to the scratch areas
+	uint map_and_clear(uint address) nothrow
+	{
+		uint phys_address = physAllocator.allocate_page();
+		map_absolute(phys_address, cast(virt_addr)address, PG_READ_WRITE);
+		memclr(cast(void *)address, PAGE_SIZE);
+		return phys_address;
+	}
+
+	// Allocate space for the new page directory and clear it
+	const uint phys_pd_address = map_and_clear(cast(uint)scratch_pd);
+
+	// Allocate space for a page table
+	const uint phys_pt_address = map_and_clear(cast(uint)scratch_pt);
+
+	// Setup an identity mapping of the lowest 1MiB in the new address space	
+	const uint one_MiB = addr_to_pt_index(0x100000);	
+	for (uint i = 0; i < one_MiB; ++i)
+	{
+		scratch_pt.addrs[i] = i*PAGE_SIZE | PG_PRESENT | PG_READ_WRITE;
+	}
+
+	scratch_pd.tables[0] = phys_pt_address | PG_READ_WRITE | PG_PRESENT;
+
+	// Map in the kernel
+	const uint kernel_idx_lo = addr_to_pd_index(g_memoryInfo.kernel_start);
+	const uint kernel_idx_hi = addr_to_pd_index(g_memoryInfo.kernel_end);
+
+	// Copy the whole default kernel address space
+	for (uint idx = kernel_idx_lo; idx <= kernel_idx_hi; ++idx)
+	{
+		serial_outln("I: ", idx, " PD: ", cast(uint)pd.tables[idx]);
+		scratch_pd.tables[idx] = pd.tables[idx];
+	}
+
+	void flush_tlb() nothrow
+	{
+		asm {
+			mov EAX, CR3;
+			mov CR3, EAX;
+		}
+	}
+
+	// A little helper function to do a physical copy
+	void physical_copy(const uint pd_index) nothrow
+	{
+		uint copy_from_address = pd_index * (PAGE_SIZE * 1024);
+		if ((pd.tables[pd_index] & PG_PRESENT) > 0)
+		{
+			serial_outln("Copying Start: ", copy_from_address);
+			// Go through all the page table entries and see if they need
+			// to be copied
+			PageTable* pt = get_page_table(pd_index);
+
+			const uint phys_pt_address = map_and_clear(cast(uint)scratch_pt);
+			scratch_pd.tables[pd_index] = phys_pt_address | PG_READ_WRITE | PG_PRESENT;
+
+			for (uint i = 0; i < 1024; ++i, copy_from_address += PAGE_SIZE)
+			{
+				if ((pt.addrs[i] & PG_PRESENT) > 0)
+				{
+					serial_outln("Copying: ", copy_from_address);
+					// Physically copy this page
+					const uint phys_address = map_and_clear(cast(uint)scratch_pte);
+					const uint orig_flags_and_addr = phys_address | (pt.addrs[i] & 0xFFF);
+
+					scratch_pt.addrs[i] = phys_address | PG_READ_WRITE | PG_PRESENT;
+
+					// Do the actual copy operation
+					memcpy(cast(void*)scratch_pte, cast(void*)copy_from_address, PAGE_SIZE);
+
+					// Use the original flags
+					scratch_pt.addrs[i] = orig_flags_and_addr;
+					
+					flush_tlb();
+				}
+			}
+		}
+	}
+
+	serial_outln("Kernel low: ", kernel_idx_lo);
+	serial_outln("Kernel hi:  ", kernel_idx_hi);
+
+	// Now make a copy of everything else, that's from 0x100000 - Kernel Start
+	// and Kernel End - 0xFFFFF000
+	for (uint idx = one_MiB; idx < kernel_idx_lo; ++idx)
+	{
+		physical_copy(idx);
+	}
+
+	// Don't copy the last section, that maps back to the scratch_pd
+	// TODO - Fix when we get a higher half kernel
+	//        Work around so we don't copy the kernel heap
+	for (uint idx = kernel_idx_hi+1; idx < 1023; ++idx)
+	{
+		physical_copy(idx);
+	}
+
+	// Map the new page directory back to itself
+	scratch_pd.tables[1023] = phys_pd_address | PG_READ_WRITE | PG_PRESENT;
+
+	// Reset the scratch entries
+	map_absolute(scratch_pd_address,  scratch_pd_address, PG_READ_WRITE);
+	map_absolute(scratch_pt_address,  scratch_pt_address, PG_READ_WRITE);
+	map_absolute(scratch_pte_address, scratch_pte_address, PG_READ_WRITE);
+
+	return cast(PageDirectory*) phys_pd_address;
 }
 
 void map_page(const virt_addr address, const uint permissions)
@@ -184,7 +331,7 @@ void map_page(const virt_addr address, const uint permissions)
 
 	if (page_table.addrs[pg_tbl_index] != 0)
 	{
-		panic("VA: map_page - address is already mapped!");
+		assert(false, "VA: map_page - address is already mapped!");
 	}
 
 	// Get a new physical address to map
@@ -237,6 +384,21 @@ void unmap_page(virt_addr address)
 	}
 }
 
+void reset_page_directory()
+{
+	for (uint addr = 0x100000; addr < g_memoryInfo.kernel_start; addr += PAGE_SIZE)
+	{
+		unmap_page(addr);	
+	}
+
+	const uint max_address = 1023 * PAGE_SIZE * 1024;
+	for (uint addr = g_memoryInfo.kernel_end; addr < max_address; addr += PAGE_SIZE)
+	{
+		if (addr < 0x600000 || addr > 0x619000)
+			unmap_page(addr);	
+	}
+}
+
 void identity_map(const virt_addr low, const virt_addr hi)
 {
 	identity_map(g_kernelTable, low, hi);
@@ -244,7 +406,11 @@ void identity_map(const virt_addr low, const virt_addr hi)
 
 void free_page_directory(PageDirectory* pd)
 {
-	panic("VMM: Free page directory not implemented");
+	reset_page_directory();
+	switch_page_directory(g_kernelTable);
+
+	// Free it
+	physAllocator.free_page(cast(uint)pd);
 }
 
 // Only works when paging is off
