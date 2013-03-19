@@ -27,11 +27,13 @@ struct ModuleGroup
 
 	void sortCtors()
 	{
+		asm { cli; mov EAX, 0xAFAFAFAF; hlt; }
 		// don't bother to initialize, as they are getting overwritten anyhow
-		immutable n = _modules.length;
+		/+immutable n = _modules.length;
 		_ctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
 		_tlsctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
 		.sortCtors(this);
+		+/
 	}
 
 	void runCtors()
@@ -57,21 +59,27 @@ struct ModuleGroup
 
 	void runDtors()
 	{
+		asm { cli; mov EAX, 0xAEAEAEAE; hlt; }
+		/+
 		runModuleFuncsRev!(m => m.dtor)(_ctors);
 		// clean all initialized flags
 		foreach (m; _modules)
 			m.flags = m.flags & ~MIctordone;
 
 		free();
+		+/
 	}
 
 	void free()
 	{
+		asm { cli; mov EAX, 0xADADADAD; hlt; }
+		/+
 		.free(_ctors.ptr);
 		_ctors = null;
 		.free(_tlsctors.ptr);
 		_tlsctors = null;
 		_modules = null;
+		+/
 	}
 
 	private:
@@ -123,7 +131,7 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) @system nothrow dg) no
  * constructors.
  */
 
-void sortCtors(ref ModuleGroup mgroup)
+/+void sortCtors(ref ModuleGroup mgroup)
 	in
 {
 	assert(mgroup._modules.length == mgroup._ctors.length);
@@ -153,7 +161,7 @@ body
 		sortCtorsImpl(mgroup, (cast(StackRec*)p)[0 .. len]);
 		.free(p);
 	}
-}
+}+/
 
 struct StackRec
 {
