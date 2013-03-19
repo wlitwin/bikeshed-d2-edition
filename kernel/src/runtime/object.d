@@ -689,6 +689,8 @@ nothrow:
 
 	override void swap(void* p1, void* p2) const
 	{
+		asm { cli; mov EAX, 0xACACACAC; hlt; }
+		/+
 		void* tmp;
 		size_t sz = value.tsize;
 		ubyte[16] buffer;
@@ -711,6 +713,7 @@ nothrow:
 		{
 			free(pbuffer);
 		}
+		+/
 	}
 
 	override const(void)[] init() const pure nothrow
