@@ -7,6 +7,8 @@ SECTIONS {
 
 	.text : {
 		code = .; _code = .; __code = .;
+		/* Force the pre-kernel code to go first */
+		*(.text.pre_kernel)
 		*(.text)
 		*(.text.*)
 	}

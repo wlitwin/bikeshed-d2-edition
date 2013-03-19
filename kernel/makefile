@@ -15,8 +15,6 @@ OBJ_DIR=obj
 DBG=
 
 KERNEL_OBJECTS=$(shell find src/ -name '*.[dS]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[dS]\)$$/obj\/\1.o/g')
-# Filtered out in the linker, this must go first in order to boot the kernel
-PRE_KERNEL = $(OBJ_DIR)/src/pre-kernel.S.o
 
 all: kernel 
 
@@ -37,5 +35,7 @@ debug: DBG+=gdb --args
 debug: kernel
 
 kernel: $(KERNEL_OBJECTS)
-	$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
-	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
+	$(LD) $(LD_FLAGS) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.b
+	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.o
+
+#
