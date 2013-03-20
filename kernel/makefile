@@ -15,6 +15,7 @@ OBJ_DIR=obj
 DBG=
 
 KERNEL_OBJECTS=$(shell find src/ -name '*.[ds]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[ds]\)$$/obj\/\1.o/g')
+PRE_KERNEL = $(OBJ_DIR)/src/arch/x86/prekernel.s.o
 
 all: kernel 
 
@@ -36,5 +37,5 @@ debug: DBG+=gdb --args
 debug: kernel
 
 kernel: $(KERNEL_OBJECTS)
-	$(LD) $(LD_FLAGS) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.b
-	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.o
+	$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.b
+	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel.o
