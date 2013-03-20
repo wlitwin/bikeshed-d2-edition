@@ -14,7 +14,7 @@ OBJ_DIR=obj
 # Filled in by debug rule
 DBG=
 
-KERNEL_OBJECTS=$(shell find src/ -name '*.[dS]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[dS]\)$$/obj\/\1.o/g')
+KERNEL_OBJECTS=$(shell find src/ -name '*.[ds]' -o -name '*.di' | sed -e 's/^\(.*\.di\|.*\.[ds]\)$$/obj\/\1.o/g')
 
 all: kernel 
 
@@ -26,7 +26,8 @@ clean:
 $(OBJ_DIR)/%.d.o : %.d
 	$(DBG) $(DC) $(D_FLAGS) -Isrc/runtime -c $^ -of$@
 
-$(OBJ_DIR)/%.S.o : %.S
+$(OBJ_DIR)/%.s.o : %.s
+	mkdir -p $(shell dirname $@)
 	$(AS) $(AS_FLAGS) $^ -o $@
 
 .PHONY: kernel debug
@@ -37,5 +38,3 @@ debug: kernel
 kernel: $(KERNEL_OBJECTS)
 	$(LD) $(LD_FLAGS) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.b
 	$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(KERNEL_OBJECTS) -o $(OUTPUT_DIR)/kernel.o
-
-#
