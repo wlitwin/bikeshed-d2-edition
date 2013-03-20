@@ -2,13 +2,12 @@ ENTRY (pre_kernel)
 OUTPUT_ARCH (i386)
 
 SECTIONS {
-	. = 0x200000;
+
+	. = 0xC0200000;
 	KERNEL_START = .;
 
 	.text : {
 		code = .; _code = .; __code = .;
-		/* Force the pre-kernel code to go first */
-		*(.text.pre_kernel)
 		*(.text)
 		*(.text.*)
 	}
