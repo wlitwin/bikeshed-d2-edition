@@ -8,7 +8,7 @@ public:
 
 version (X86)
 {
-	// Need the write char/write string functions
+	// Need the write_char and init functions
 	public  import arch.x86.kprintf : init;
 	private import arch.x86.kprintf : write_char;
 }
@@ -17,6 +17,26 @@ else
 	static assert(false, "Kprintf: Unsupported Architecture");
 }
 
+/* Standard printf() function. The first argument 
+ * is a string, the rest of the arguments are the
+ * things to format. Does some error checking, but
+ * may not be super robust.
+ *
+ * Format syntax:
+ *
+ *   %[-][0][width](c|d|u|s|x|o|%)
+ *
+ * -     => Left adjust
+ * 0     => Pad with zeros
+ * width => Amount of padding
+ * c     => Character
+ * d     => Decimal number
+ * u     => Unsigned decimal number
+ * s     => String
+ * x     => Hexidecimal number
+ * o     => Octal number
+ * %     => Print the percent character
+ */
 void kprintf(string format, ...) 
 {
 	char ch;
@@ -95,7 +115,6 @@ void kprintf(string format, ...)
 					assert(false, "kprintf: Invalid format specifier");
 					//break;
 			}
-
 		}
 		else
 		{
