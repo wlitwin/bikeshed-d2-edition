@@ -18,4 +18,7 @@ void init()
 	{
 		static assert(false, "Memory Init: Unsupported Architecture");
 	}
+
+	// Initialize the physical memory manager
+	kernel.memory.physical.init.init();
 }
