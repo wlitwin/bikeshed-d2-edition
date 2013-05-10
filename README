@@ -1,4 +1,4 @@
-This is the future home of the D2 language version of Bikeshed OS
+This is the future home of the D2 language version of [Bikeshed OS](https://github.com/caltry/Bikeshed)
 
 The OS is currently at the first milestone, which includes having
 running processes and working memory/system calls. Before the code
